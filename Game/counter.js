@@ -24,14 +24,15 @@ window.LuckyCounter = (() => {
 
   function receipt(a, expanded=false) {
     const busy = ['tear','gifts','seal'].includes(a.stage);
-    if (expanded) {
-      return '<div class="expanded-lines">' + a.bags.map((b,i) => {
-        const description = b.opened ? cardName(b) : '第 ' + (i+1) + ' 袋';
-        const progress = b.opened ? b.pieces.length+'/'+b.quantity : '待拆';
-        return button('station-card', bagIcon(b) + `<span>${description}</span><em>${progress}</em>`,
-          'note-line', i, `aria-label="${b.opened?C.themes[b.color].name:''}${description}，${progress}" ${busy?'disabled':''}`);
-      }).join('') + '</div>';
+    function cardButton(b,i,compact) {
+      const description = b.opened ? cardName(b) : '第 ' + (i+1) + ' 袋';
+      const progress = b.opened ? b.pieces.length+'/'+b.quantity : '待拆';
+      const current=i===a.current;
+      const contents=bagIcon(b)+(compact ? `<em>${progress}</em>` : `<span>${description}</span><em>${progress}</em>`);
+      return button('station-card',contents,compact?'ticket-tab':'note-line',i,
+        `aria-label="${b.opened?C.themes[b.color].name:''}${description}，${progress}" ${current?'aria-current="true"':''} ${busy?'disabled':''}`);
     }
+    if(expanded)return '<div class="expanded-lines">'+a.bags.map((b,i)=>cardButton(b,i,false)).join('')+'</div>';
     const b = a.bags[a.current];
     const picked = b?.opened;
     const filled = picked && b.pieces.length === b.quantity;
@@ -40,11 +41,12 @@ window.LuckyCounter = (() => {
     const picture = picked ? item({...b,variant:b.variant??0}) : icon(a.theme,36);
     const count = picked ? `<em>${b.pieces.length}/${b.quantity}</em>` : '';
     const summary = picked ? C.themes[b.color].name + ' ' + name + ' ' + b.pieces.length+'/'+b.quantity : C.themes[a.theme].name;
-    return button('ticket-zoom',
+    const summaryButton=button('ticket-zoom',
       `<span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?'第 '+a.level+' 关':'#'+String(a.id).padStart(3,'0')}</small></span>
       <span class="slip-wish">${picture}<span><strong>${name}</strong></span>${count}</span>
       <span class="bag-marks" aria-hidden="true">${tally}</span>`,
-      'ticket-paper'+(filled?' completed':''), '', `aria-label="${a.customer}的配货单，${summary}，查看五袋明细" aria-haspopup="dialog"`);
+      'ticket-summary', '', `aria-label="${a.customer}的配货单，${summary}，查看五袋明细" aria-haspopup="dialog"`);
+    return `<div class="ticket-paper${filled?' completed':''}">${summaryButton}<div class="ticket-tabs">${a.bags.map((b,i)=>cardButton(b,i,true)).join('')}</div></div>`;
   }
 
   // A bay has a permanent address for every style. Both camera distances use these same cubbies.

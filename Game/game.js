@@ -74,10 +74,11 @@
     const from=!dragged && !reduced() ? slot?.getBoundingClientRect() : null;
     const image='assets/items/'+goods.color+'-'+goods.kind+'-'+goods.variant+'.png';
     if(!await change('add-piece',goods,false))return false;
-    if(state.active.bags[a.current].pieces.length===card.quantity)local.zoomBay=null;
+    const packed=state.active.bags[a.current];
+    if(packed.pieces.length===packed.quantity && !state.active.bags.some(b=>
+      b.opened && b.pieces.length<b.quantity && C.kinds[b.kind].drawer===local.zoomBay))local.zoomBay=null;
     render();
     itemSound(goods.kind);
-    const packed=state.active.bags[state.active.current];
     if(packed.pieces.length===packed.quantity){
       const matched=packed.pieces.every(g=>g.kind===card.kind && g.color===card.color &&
         (card.variant===null || g.variant===card.variant));
@@ -154,10 +155,16 @@
       case 'ticket-zoom': modal('ticket');return;
       case 'station-card':
         if(await change('station-card',n,false)){
-          local.zoomBay=null;
+          const card=a.bags[n];
+          if(!card.opened || C.kinds[card.kind].drawer!==local.zoomBay)local.zoomBay=null;
           if(local.modals.at(-1)==='ticket')local.modals.pop();
-          render();sound(a.bags[n].opened?'paper':'beads');
-        }return;
+          render();sound(card.opened?'paper':'beads');
+          const focus=local.zoomBay?'station-close-rack':card.opened?'ticket-zoom':'tear-all';
+          root.querySelector(`[data-act="${focus}"]`)?.focus({preventScroll:true});
+        }else if(a?.stage==='shelf' && a.current===n && local.modals.at(-1)==='ticket'){
+          back();
+        }
+        return;
       case 'station-unpack': if(await change('station-unpack'))sound('paper');return;
       case 'station-bay': {
         const kind=C.kinds.findIndex(k=>k.drawer===val);

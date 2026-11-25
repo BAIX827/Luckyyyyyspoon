@@ -178,6 +178,7 @@
       case 'station-card': {
         const selected=a.bags[arg];
         if(!Number.isInteger(arg) || !selected || !['tray','shelf','pack','reveal'].includes(a.stage)) return false;
+        if(a.stage==='shelf' && a.current===arg)return false;
         a.stage=selected.opened?'shelf':'tear'; a.current=arg; a.tear=selected.opened?1:0;
         if(selected.opened){a.shelfKind=selected.kind; a.shelfVariant=0; a.drawer=kinds[selected.kind].drawer;}
         a.history=[]; next.learned.tray=true; break;

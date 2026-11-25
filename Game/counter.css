@@ -262,3 +262,15 @@
  [data-camera="near"] .counter-note,[data-camera="near"] .hand-space,[data-camera="near"] .parcel-space{grid-area:auto}
  [data-camera="near"] .hand-space{justify-self:start}
 }
+
+.ticket-summary{display:flex;flex-direction:column;gap:inherit;width:100%;padding:0;text-align:left}
+.ticket-tabs{display:none}
+.note-line[aria-current],.ticket-tab[aria-current]{background:#f2dab3;box-shadow:inset 3px 0 #785634}
+@media(orientation:landscape) and (min-width:1024px) and (min-height:620px){
+  .ticket-paper .bag-marks{display:none}
+  .ticket-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px dashed #ba9d7e}
+  .ticket-tab{display:grid;place-items:center;min-height:44px;padding:2px 0}
+  .ticket-tab img{width:23px;height:23px;object-fit:contain}
+  .ticket-tab em{font:700 12px/1.1 sans-serif}
+  .counter-note{min-width:240px}
+}

@@ -67,6 +67,19 @@ test('picking directly from a revealed card uses that rack and leaves a reversib
   assert.equal(undo.active.bags[0].pieces.length,0);
   assert.equal(C.remaining(undo.active,goods),C.remaining(restored.active,goods));
 });
+test('reselecting the current card preserves its drawer, stock and undo history',()=>{
+  const g=counter();g.act('start-level',1);g.open(0);
+  const goods={kind:5,color:'green',variant:0};
+  g.act('station-browse',{kind:goods.kind,variant:goods.variant});
+  const before=C.remaining(g.order,goods);
+  g.act('add-piece',goods);
+  g.blocked('station-card',0);
+  assert.equal(g.order.drawer,C.kinds[goods.kind].drawer);
+  assert.equal(C.remaining(g.order,goods),before-1);
+  g.act('undo');
+  assert.equal(C.remaining(g.order,goods),before);
+});
+
 test('100 orders can ship through the landscape counter, including repositioning, gifting and reopening',()=>{
   const g=counter();
   for(let level=1;level<=100;level++){
