@@ -21,8 +21,8 @@ function fill(d,theme='blue',adjust=(g)=>g){
   }
 }
 function seal(d){d.go('photo');d.go('seal','2026-11-25T00:00:00Z');}
-test('six colors and 72 collection entries; five distinct bag wishes',()=>{
-  assert.equal(Object.keys(C.themes).length*C.kinds.length*2,72);
+test('six colors and the original 72 designs; five distinct legacy bag wishes',()=>{
+  assert.equal(Object.keys(C.themes).length*C.kinds.slice(0,6).reduce((n,k)=>n+k.styles.length,0),72);
   for(const color of Object.keys(C.themes)){const d=driver();begin(d,color);assert.equal(new Set(d.s.active.bags.map(b=>b.kind)).size,5);assert.equal(d.s.active.theme,color);}
 });
 test('color and kind are independently payable; wrong picks remain allowed',()=>{
@@ -55,5 +55,5 @@ test('cannot seal incomplete order; tear/selected merchandise survive restart',(
 });
 test('free sorting different colors does not change satisfaction; invalid merchandise rejected',()=>{
   const d=driver();fill(d,'purple',g=>({...g,color:'pink'}));const score=C.score('purple',C.packedItems(d.s.active)).satisfaction;d.go('move',{from:0,to:4});assert.equal(C.score('purple',C.packedItems(d.s.active)).satisfaction,score);
-  const saved=d.s;d.go('replace',{slot:0,goods:{kind:6,color:'blue',variant:0}});assert.equal(saved,d.s);
+  const saved=d.s;d.go('replace',{slot:0,goods:{kind:C.kinds.length,color:'blue',variant:0}});assert.equal(saved,d.s);
 });

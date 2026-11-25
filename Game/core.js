@@ -2,7 +2,7 @@
 
 (function (root) {
   const {levels,chapters} = root.LuckyLevels || require('./levels.js');
-  const giftKinds = [4,3,1];
+  const giftKinds = [4,3,1,10,15,22];
   const themes = {
     pink: { name: '草莓粉', mark: '草莓', swatch: '#f98aa9', pale: '#ffe3dd', dark: '#92354e' },
     blue: { name: '海盐蓝', mark: '贝壳', swatch: '#7ccbdc', pale: '#dcf5ef', dark: '#265e78' },
@@ -17,12 +17,30 @@
     { name: '本子', drawer: '纸品', styles: ['线圈本', '扣带硬壳本'] },
     { name: '发夹', drawer: '发饰', styles: ['花朵边夹', '长条树脂夹'] },
     { name: '贴纸', drawer: '纸品', styles: ['拼贴贴纸', '长条封口贴'] },
-    { name: '零钱包', drawer: '随身', styles: ['半月拉链包', '方形口金包'] }
+    { name: '零钱包', drawer: '随身', styles: ['半月拉链包', '方形口金包'] },
+    { name: '发圈', drawer: '发饰', styles: ['花瓣绒发圈'] },
+    { name: '抓夹', drawer: '发饰', styles: ['贝壳抓夹'] },
+    { name: '发带', drawer: '发饰', styles: ['交叉束发带'] },
+    { name: '荧光笔', drawer: '书写', styles: ['斜头荧光笔'] },
+    { name: '橡皮', drawer: '书写', styles: ['双色纸套橡皮'] },
+    { name: '修正带', drawer: '书写', styles: ['水滴修正带'] },
+    { name: '自动铅笔', drawer: '书写', styles: ['金属细芯铅笔'] },
+    { name: '便签', drawer: '纸品', styles: ['方格便签砖'] },
+    { name: '和纸胶带', drawer: '纸品', styles: ['花点和纸胶带'] },
+    { name: '书签', drawer: '纸品', styles: ['流苏书签'] },
+    { name: '钥匙扣', drawer: '随身', styles: ['星星钥匙扣'] },
+    { name: '卡套', drawer: '随身', styles: ['透明挂绳卡套'] },
+    { name: '收纳袋', drawer: '随身', styles: ['束口小布袋'] },
+    { name: '折叠镜', drawer: '随身', styles: ['贝母口袋镜'] },
+    { name: '发梳', drawer: '发饰', styles: ['圆柄气垫梳'] },
+    { name: '卷笔刀', drawer: '书写', styles: ['双孔卷笔刀'] },
+    { name: '长尾夹', drawer: '纸品', styles: ['烤漆长尾夹'] },
+    { name: '水杯', drawer: '随身', styles: ['花釉马克杯'] }
   ];
   const copy = value => JSON.parse(JSON.stringify(value));
   const initial = () => ({
     format: 1, revision: 0, nextId: 1, seenIntro: false,
-    settings: { sound: true, haptic: true, motion: 'system' }, learned: {},
+    settings: { music: true, sound: true, haptic: true, motion: 'system' }, learned: {},
     active: null, orders: []
   });
   const count = order => order.gifts ? order.bags.filter(b=>b.opened).length : order.slots.filter(index => index !== null).length;
@@ -59,7 +77,7 @@
   }
   function validGoods(item) {
     return item && Number.isInteger(item.kind) && !!kinds[item.kind] &&
-      Object.hasOwn(themes,item.color) && [0,1].includes(item.variant);
+      Object.hasOwn(themes,item.color) && Number.isInteger(item.variant) && kinds[item.kind].styles[item.variant] !== undefined;
   }
   function unlockedLevel(state) {
     const finished = new Set(state.orders.map(order=>order.level));
@@ -79,7 +97,7 @@
     const group = gift ? order.gifts : order.bags.flatMap(b=>b.pieces);
     const used = group.filter(g=>g.kind===goods.kind && g.color===goods.color && g.variant===goods.variant).length;
     const capacity = gift ? 2 : (order.bags.find(b=>b.kind===goods.kind)?.quantity || 1);
-    return capacity-used;
+    return capacity + (gift ? 0 : order.reserve || 0) - used;
   }
   function rateCards(cards) {
     const lines = cards.map(card=>{
@@ -105,10 +123,10 @@
       }
     } else {
       cards=shuffled(random).map(kind=>({kind,color:theme,variant:null,
-        quantity:giftKinds.includes(kind) ? 1+Math.floor(random()*(kind===1 ? 2 : 3)) : 1}));
+        quantity:1+Math.floor(random()*3)}));
     }
     next.active={id,level:level?.id || null,theme,customer:level?.customer || customers[(id-1)%customers.length],
-      stage:'tray',current:null,tear:0,drawer:null,gifts:[],history:[],stamp:false,
+      stage:'tray',current:null,tear:0,drawer:null,reserve:2,gifts:[],history:[],stamp:false,
       bags:cards.map((card,i)=>({...card,wrapper:Object.keys(themes)[(id+i)%6],opened:false,pieces:[]}))};
   }
   // The bag owns its pieces throughout picking, corrections, and packing.
@@ -116,6 +134,28 @@
   function batchAction(next,action,arg) {
     const a=next.active, card=a.bags[a.current];
     switch(action) {
+      case 'station-browse': {
+        if(!['tray','tear','reveal','shelf','pack'].includes(a.stage) || !Number.isInteger(arg?.kind) ||
+          !Number.isInteger(arg.variant) || !kinds[arg.kind]?.styles[arg.variant]) return false;
+        a.shelfKind=arg.kind; a.shelfVariant=arg.variant; a.drawer=kinds[arg.kind].drawer;
+        if(a.stage==='reveal') a.stage='shelf';
+        break;
+      }
+      case 'station-card': {
+        const selected=a.bags[arg];
+        if(!Number.isInteger(arg) || !selected || !['tray','shelf','pack','reveal'].includes(a.stage)) return false;
+        a.stage=selected.opened?'shelf':'tear'; a.current=arg; a.tear=selected.opened?1:0;
+        if(selected.opened){a.shelfKind=selected.kind; a.shelfVariant=0; a.drawer=kinds[selected.kind].drawer;}
+        a.history=[]; next.learned.tray=true; break;
+      }
+      case 'station-unpack': {
+        if(a.stage!=='reveal') return false;
+        a.stage='shelf'; a.shelfKind=card.kind; a.shelfVariant=0; a.drawer=kinds[card.kind].drawer;
+        next.learned.shelf=true; break;
+      }
+      case 'station-pack':
+        if(!['shelf','tray','reveal'].includes(a.stage) || !a.bags.every(b=>b.opened) || !pieceCount(a.bags)) return false;
+        a.stage='pack'; a.current=null; a.history=[]; break;
       case 'pick': {
         if(a.stage!=='tray' || !Number.isInteger(arg) || !a.bags[arg]) return false;
         a.current=arg; a.drawer=null; a.tear=0; a.history=[];
@@ -140,7 +180,7 @@
         a.stage='shelf'; a.current=arg; a.drawer=null; a.history=[]; break;
       case 'position': {
         const piece=a.bags[arg?.bag]?.pieces[arg?.index];
-        if(a.stage!=='pack' || !piece || ![arg.x,arg.y].every(v=>Number.isFinite(v)&&v>=0&&v<=1))return false;
+        if(!['shelf','pack'].includes(a.stage) || !piece || ![arg.x,arg.y].every(v=>Number.isFinite(v)&&v>=0&&v<=1))return false;
         saveUndo(a);piece.position={x:arg.x,y:arg.y};break;
       }
       case 'wrap':
@@ -181,8 +221,8 @@
     return true;
   }
   const customers=['阿梨','小满','可可','小岚','团子','阿柚','云朵','南南'];
-  function shuffled(random) {
-    const values = kinds.map((_, i) => i);
+  function shuffled(random, catalogue=kinds) {
+    const values = catalogue.map((_, i) => i);
     for (let i = values.length - 1; i > 0; i--) {
       const j = Math.floor(random() * (i + 1));
       [values[i], values[j]] = [values[j], values[i]];
@@ -222,7 +262,7 @@
         if (order || !Object.hasOwn(themes,arg)) return state;
         next.active = { id: next.nextId++, theme: arg, stage: 'tray', current: null,
           customer:customers[(next.nextId-2)%customers.length],
-          bags: shuffled(random).map((kind,i) => ({kind,wrapper:Object.keys(themes)[(next.nextId+i)%6],goods:null})), slots: Array(5).fill(null),
+          bags: shuffled(random,kinds.slice(0,6)).map((kind,i) => ({kind,wrapper:Object.keys(themes)[(next.nextId+i)%6],goods:null})), slots: Array(5).fill(null),
           tear: 0, drawer: null, choice: null, history:[] };
         break;
       case 'pick':
@@ -245,7 +285,7 @@
         order.drawer = arg; order.shelfKind=kinds.findIndex(k=>k.drawer===arg); order.shelfVariant=0; order.choice=null; next.learned.shelf = true; break;
       case 'browse':
         if (!stage('shelf') || !Number.isInteger(arg?.kind) || kinds[arg.kind]?.drawer!==order.drawer ||
-            ![0,1].includes(arg.variant)) return state;
+            !Number.isInteger(arg.variant) || kinds[arg.kind].styles[arg.variant]===undefined) return state;
         order.shelfKind=arg.kind; order.shelfVariant=arg.variant; order.choice=null; break;
       case 'choose':
         if (!stage('shelf') || !validGoods(arg) || kinds[arg.kind].drawer!==order.drawer) return state;
@@ -341,6 +381,8 @@
         !['system','on','off'].includes(value.settings.motion) || !value.learned ||
         (value.active!==null && !(validActive(value.active) && Array.isArray(value.active.history) &&
           value.active.history.every(validActive)))) throw new Error('存档格式无法读取');
+    if(value.settings.music===undefined) value.settings.music=true;
+    if(typeof value.settings.music!=='boolean') throw new Error('存档音乐设置无法读取');
     return value;
   }
   function decode(raw) {

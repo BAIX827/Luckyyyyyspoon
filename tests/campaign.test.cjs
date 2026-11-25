@@ -69,6 +69,8 @@ test('all 100 documented tickets are playable in order, with balanced requiremen
 });
 test('per-SKU supply, arbitrary returns, saved undo and positions, zero to two gifts',()=>{
   const game=run();game.do('start-level',1);
+  // An in-progress order made before counter reserves keeps its original supply.
+  delete game.order.reserve;
   const i=0;pickCard(game,i);
   const g={kind:3,color:'orange',variant:1};
   game.do('drawer','发饰');game.do('add-piece',g);game.blocked('add-piece',g);
