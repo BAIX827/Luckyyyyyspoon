@@ -47,6 +47,26 @@ test('counter reserve is per style and color; sold-out items, returns, undo and 
   g.act('undo');assert.equal(C.remaining(g.order,mug),0);
   g.act('discard');g.act('start-level',1);assert.equal(C.remaining(g.order,mug),3);
 });
+test('picking directly from a revealed card uses that rack and leaves a reversible first pick',()=>{
+  const g=counter();g.act('start-level',1);
+  g.act('station-card',0);g.act('tear',1);
+  const card=g.order.bags[0], drawer=C.kinds[card.kind].drawer;
+  const goods={kind:card.kind,color:card.color,variant:card.variant??0};
+  const other=C.kinds.findIndex(k=>k.drawer!==drawer);
+  const restored=C.decode(JSON.stringify(g.state));
+  restored.active.drawer=C.kinds[other].drawer;
+  restored.active.shelfKind=other;
+  assert.equal(C.step(restored,'add-piece',{...goods,kind:other}),restored);
+  const picked=C.step(restored,'add-piece',goods);
+  assert.equal(picked.active.stage,'shelf');
+  assert.equal(picked.active.drawer,drawer);
+  assert.equal(picked.active.shelfKind,card.kind);
+  assert.deepEqual(picked.active.bags[0].pieces,[goods]);
+  const undo=C.step(picked,'undo');
+  assert.equal(undo.active.bags[0].opened,true);
+  assert.equal(undo.active.bags[0].pieces.length,0);
+  assert.equal(C.remaining(undo.active,goods),C.remaining(restored.active,goods));
+});
 test('100 orders can ship through the landscape counter, including repositioning, gifting and reopening',()=>{
   const g=counter();
   for(let level=1;level<=100;level++){

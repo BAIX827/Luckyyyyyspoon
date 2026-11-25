@@ -7,6 +7,10 @@
   local.streak=0; local.chapter=0; local.level=1; local.giftKind=4; local.giftVariant=0;
   function note(text){clearTimeout(messageTimer);message.textContent=text;message.classList.add('show');messageTimer=setTimeout(()=>message.classList.remove('show'),2700);}
   const reduced=()=>state.settings.motion==='on'||(state.settings.motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function syncCounterMusic(){
+    P.syncMusic(state.settings.music && local.page==='play' &&
+      local.modals.every(name=>name==='ticket'));
+  }
   function render(reset=false){
     const id=[local.page,state.active?.stage||'',local.modals.join('/')].join(':');
     const keep=!reset&&root.dataset.view===id;
@@ -16,7 +20,7 @@
     const theme=C.themes[state.active?.theme||local.request]||C.themes.pink;
     root.style.setProperty('--order-color',theme.swatch);
     root.innerHTML=V.page(state,local)+V.dialog(state,local);
-    P.syncMusic(state.settings.music && local.page==='play' && !local.modals.length);
+    syncCounterMusic();
     const sc=root.querySelector('.scroll');if(sc)sc.scrollTop=scroll;
     const dl=root.querySelector('.dialog');if(dl){dl.scrollTop=dialogScroll;root.querySelector('.screen').inert=true;}
     if(keep&&prevFocus){
@@ -45,22 +49,28 @@
     catch(e){if(e.message==='conflict'){state=await P.read();go('home');}throw e;}
     state=next;if(draw)render();return true;
   }
-  function sound(which){P.play(which,state.settings);}
+  function sound(which,delay=0){P.play(which,state.settings,delay);}
   function itemSound(kind){sound(['cloth','pen','book','clip','paper','zip','cloth','clip','cloth','pen','paper','tape','pen','paper','tape','paper','clip','clip','cloth','clip','cloth','clip','clip','ceramic'][kind]);}
-  async function takeFromRack(goods) {
+  async function takeFromRack(goods,dragged=false) {
     const a=state.active, card=a?.bags[a.current], value=[goods.color,goods.kind,goods.variant].join('|');
     const slot=[...root.querySelectorAll('.rack-slot')].find(el=>el.dataset.val===value);
-    const from=slot?.getBoundingClientRect(), image='assets/items/'+goods.color+'-'+goods.kind+'-'+goods.variant+'.png';
+    const from=dragged?null:slot?.getBoundingClientRect(), image='assets/items/'+goods.color+'-'+goods.kind+'-'+goods.variant+'.png';
     if(!await change('add-piece',goods))return false;
     itemSound(goods.kind);
-    if(card && card.kind===goods.kind && card.color===goods.color && (card.variant===null || card.variant===goods.variant)){
-      sound('match'+(local.streak%4)); local.streak++;
-    }else local.streak=0;
+    const packed=state.active.bags[state.active.current];
+    if(packed.pieces.length===packed.quantity){
+      const matched=packed.pieces.every(g=>g.kind===card.kind && g.color===card.color &&
+        (card.variant===null || g.variant===card.variant));
+      if(matched){sound('match'+(local.streak%4));local.streak++;}else local.streak=0;
+    }
     if(!slot)return true;
     const updated=[...root.querySelectorAll('.rack-slot')].find(el=>el.dataset.val===value);
     if(C.remaining(state.active,goods)>0){
       updated?.classList.add('restock');
-      const id=a.id;setTimeout(()=>{if(state.active?.id===id&&local.page==='play'&&!local.modals.length)sound('restock');},150);
+      const {id,current}=a;
+      const soft=['velvet','files','books','cards'].includes(LuckyCounter.fixtures[goods.kind]);
+      setTimeout(()=>{if(state.active?.id===id && state.active.current===current &&
+        local.page==='play' && !local.modals.length)sound(soft?'soft-restock':'restock');},150);
     }
     const box=root.querySelector('[data-box]')?.getBoundingClientRect();
     if(from && box && image && !reduced() && Element.prototype.animate){
@@ -105,15 +115,19 @@
         local.level=n;local.request=C.levels[n-1].theme;go('level-request',true);return;
       case 'accept-level':
         if(await change('start-level',n,false)){resetOrderTools();go('play');sound('bell');}return;
+      case 'ticket-zoom': modal('ticket');return;
       case 'station-card':
-        if(await change('station-card',n))sound(a.bags[n].opened?'paper':'beads');return;
+        if(await change('station-card',n,false)){
+          if(local.modals.at(-1)==='ticket')local.modals.pop();
+          render();sound(a.bags[n].opened?'paper':'beads');
+        }return;
       case 'station-unpack': if(await change('station-unpack'))sound('paper');return;
       case 'station-bay': {
         const kind=C.kinds.findIndex(k=>k.drawer===val);
         if(await change('station-browse',{kind,variant:0}))sound('book');return;
       }
       case 'station-type': if(await change('station-browse',{kind:n,variant:0}))sound('tick');return;
-      case 'station-style': if(await change('station-browse',{kind:a.shelfKind??0,variant:n}))sound('tick');return;
+      case 'station-style': if(await change('station-browse',{kind:a.stage==='reveal'?a.bags[a.current].kind:(a.shelfKind??0),variant:n}))sound('tick');return;
       case 'station-pack': if(await change('station-pack'))sound('book');return;
       case 'add-piece':{
         const goods=goodsVal(val);
@@ -152,7 +166,7 @@
       case 'discard-prompt':modal('discard');return;
       case 'discard':if(await change('discard',null,false)){if(a.level){local.chapter=Math.floor((a.level-1)/10);go('book');}else request();}return;
       case 'pick':if(await change('pick',n))sound('tick');return;
-      case 'tear-all':if(await change('tear',1)){sound('tear');sound('reveal');}return;
+      case 'tear-all':if(await change('tear',1)){sound('tear');sound('reveal',.14);}return;
       case 'shelf':if(await change('shelf'))sound('tick');return;
       case 'drawer':await setShelfDrawer(val,false);return;
       case 'kind':await change('browse',{kind:n,variant:0});return;
@@ -220,7 +234,7 @@
     if(heldStock?.pointer===event.pointerId)stopStockHold();
   });
   window.addEventListener('blur',stopStockHold);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopStockHold();if(state)P.syncMusic(state.settings.music && local.page==='play' && !local.modals.length);});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopStockHold();if(state)syncCounterMusic();});
   root.addEventListener('click',event=>{
     const el=event.target.closest('[data-act]');if(!el||el.disabled||event.detail && el===draggedElement)return;
     if(el.dataset.act==='add-piece' && ignoreStockClick && event.detail){ignoreStockClick=false;return;}
@@ -235,7 +249,7 @@
     if(pointer||!state?.active||e.button!==0||local.modals.length)return;
     const el=e.target.closest('[data-gesture],[data-drag]');if(!el)return;
     P.unlock();const type=el.dataset.gesture||el.dataset.drag;
-    pointer={id:e.pointerId,type,el,x:e.clientX,y:e.clientY,last:state.active.tear,lastSaved:state.active.tear,start:state.active.tear,from:Number(el.dataset.slot),moved:false,order:state.active.id,current:state.active.current};
+    pointer={id:e.pointerId,type,el,x:e.clientX,y:e.clientY,last:state.active.tear,sounded:false,start:state.active.tear,from:Number(el.dataset.slot),moved:false,order:state.active.id,current:state.active.current};
     if(type==='tear')el.setPointerCapture(e.pointerId);
   });
   function savePartial(p,val){
@@ -251,7 +265,7 @@
     if(p.type==='tear'){
       const next=Math.min(1,Math.max(p.last,p.start+dx/(p.el.clientWidth*.58)));
       p.last=next;p.el.style.setProperty('--cut',(next*100)+'%');
-      if(next-p.lastSaved>=.08){p.lastSaved=next;sound('tear');}
+      if(!p.sounded && next-p.start>=.04){p.sounded=true;sound('tear');}
       if(next===1 && !p.finished){p.finished=true;savePartial(p,1);}
     }else{
       p.el.classList.add('dragging');p.el.style.setProperty('--dx',dx+'px');p.el.style.setProperty('--dy',dy+'px');
@@ -267,7 +281,7 @@
     const target=document.elementFromPoint(e.clientX,e.clientY);
     if(p.type==='stock-piece'){
       if(target?.closest('[data-box]') && state.active?.id===p.order && state.active?.current===p.current)
-        queue(()=>act('add-piece',p.el.dataset.val));
+        queue(()=>takeFromRack(goodsVal(p.el.dataset.val),true));
       return;
     }
     if(p.type==='piece'){

@@ -42,7 +42,8 @@ window.LuckySound = (() => {
     else if(name==='tear'){for(let i=0;i<5;i++)rub(.065,.32,2200+i*170,i*.028);}
     else if(name==='ceramic'){play(1180,.20,0,.12);play(1810,.12,.008,.055);play(241,.07,0,.10);}
     else if(name==='pen'){play(1450,.037,0,.17,'triangle',740);play(1030,.055,.046,.10);}
-    else if(name==='restock'){play(920,.055,0,.08,'triangle',540);}
+    else if(name==='restock'){play(850,.052,0,.062,'triangle',510);}
+    else if(name==='soft-restock'){rub(.08,.12,840);}
     else if(name==='cloth'){rub(.16,.31,850);play(280,.044,.075,.06);}
     else if(name==='tape'){rub(.17,.25,1900);for(let i=0;i<4;i++)play(550,.022,i*.04,.06,'triangle');}
     else if(name==='book'||name==='paper'){rub(.14,.27,name==='book'?720:2600);play(165,.10,.035,.17,'sine',82);}
@@ -57,7 +58,10 @@ window.LuckySound = (() => {
     const music=ctx.createGain(),fx=ctx.createGain();music.connect(ctx.destination);fx.connect(ctx.destination);
     const level=.47;music.gain.value=level;fx.gain.value=.7;
     let timer=null,next=0,step=0;
-    function schedule(){while(next<ctx.currentTime+.27){musicStep(ctx,music,next,step++);next+=beat/2;}}
+    function schedule(){
+      if(next<ctx.currentTime)next=ctx.currentTime+.01;
+      while(next<ctx.currentTime+.27){musicStep(ctx,music,next,step++);next+=beat/2;}
+    }
     function sync(on){
       if(on&&timer===null){
         music.gain.cancelScheduledValues(ctx.currentTime);music.gain.setTargetAtTime(level,ctx.currentTime,.04);
@@ -66,7 +70,14 @@ window.LuckySound = (() => {
         clearInterval(timer);timer=null;music.gain.cancelScheduledValues(ctx.currentTime);music.gain.setTargetAtTime(.00001,ctx.currentTime,.035);
       }
     }
-    function play(name){const t=ctx.currentTime;if(timer!==null){music.gain.cancelScheduledValues(t);music.gain.setTargetAtTime(level*.52,t,.015);music.gain.setTargetAtTime(level,t+.20,.09);}effect(ctx,fx,name,t);}
+    function play(name,delay=0){
+      const t=ctx.currentTime+delay;
+      if(timer!==null && ['beads','tear','gift','seal'].includes(name)){
+        music.gain.cancelScheduledValues(t);music.gain.setTargetAtTime(level*.63,t,.025);
+        music.gain.setTargetAtTime(level,t+.20,.11);
+      }
+      effect(ctx,fx,name,t);
+    }
     return {sync,play};
   }
   function demo(ctx,withEffects){

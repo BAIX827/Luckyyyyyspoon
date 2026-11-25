@@ -213,6 +213,7 @@
   function dialog(s,l){
     const name=l.modals.at(-1);if(!name)return '';
     let title='',body='';
+    if(name==='ticket'){title=s.active.customer+'的配货单';body=LuckyCounter.receipt(s.active,true);}
     if(name==='pause'){title='暂停打包';body=`<p>订单 ${num(s.active.id)} · ${C.themes[s.active.theme].name} · ${s.active.gifts?'已开':'已装'} ${C.count(s.active)} / 5</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+button('discard-prompt','结束本单并重新接单','text-btn');}
     if(name==='discard'){title='结束这笔订单？';body='<p>这盒还未封箱，本单的小物与收益会一起放弃。</p>'+primary('close','保留本单')+secondary('discard','结束并重新点单');}
     if(name==='help'){title='怎样配好一盒';body=`<ol class="guide"><li><b>先看顾客点的颜色</b><p>撕袋露卡，看清图卡上的品类、数量和目标颜色。</p></li><li><b>货架上六色都有</b><p>打开抽屉，挑品类、款式和颜色。拿错可以撤回，也可以点盒中小物重新配货。</p></li><li><b>五袋揭晓后，挑赠品、贴封签</b><p>每张卡最多 20 分，缺件按比例计入满意度。赠品可送零至两件，单独记入回信。封好关卡订单就能继续下一关。</p></li></ol>`+primary('close','知道了');}

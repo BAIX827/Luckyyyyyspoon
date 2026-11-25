@@ -162,10 +162,17 @@
         a.stage=a.bags[arg].opened ? 'shelf' : 'tear';
         next.learned.tray=true; break;
       }
-      case 'add-piece':
-        if(a.stage!=='shelf' || !validGoods(arg) || kinds[arg.kind].drawer!==a.drawer ||
+      case 'add-piece': {
+        const revealing=a.stage==='reveal';
+        if((!revealing && a.stage!=='shelf') || !validGoods(arg) || !card ||
+            kinds[arg.kind].drawer!==(revealing ? kinds[card.kind].drawer : a.drawer) ||
             card.pieces.length>=card.quantity || remaining(a,arg)<=0) return false;
+        if(revealing){
+          a.stage='shelf'; a.shelfKind=card.kind; a.shelfVariant=0;
+          a.drawer=kinds[card.kind].drawer; next.learned.shelf=true;
+        }
         saveUndo(a); card.pieces.push({...arg}); break;
+      }
       case 'return-piece': {
         const bag=a.bags[arg?.bag], index=arg?.index;
         if(!['shelf','pack'].includes(a.stage) || !bag || !Number.isInteger(index) || !bag.pieces[index]) return false;

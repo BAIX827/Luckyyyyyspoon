@@ -81,8 +81,8 @@ window.LuckyPlatform = (() => {
       syncMusic(musicWanted);
     }catch{}
   }
-  function play(which,settings) {
-    if(settings.sound && audio?.state==='running' && !document.hidden) mixer.play(which||'tick');
+  function play(which,settings,delay=0) {
+    if(settings.sound && audio?.state==='running' && !document.hidden) mixer.play(which||'tick',delay);
     if(settings.haptic && ['reveal','seal'].includes(which)) {
       if(bridge) bridge.postMessage({op:'haptic'}).catch(()=>{});
       else navigator.vibrate?.(14);
