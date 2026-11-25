@@ -1,0 +1,95 @@
+name: LuckyBags iOS
+run-name: LuckyBags iOS · ${{ inputs.upload && 'TestFlight' || 'Verify archive' }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload:
+        description: Sign and upload this build to App Store Connect
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: ${{ !inputs.upload || github.ref == 'refs/heads/main' }}
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Run game tests and check Xcode
+        run: |
+          node --test tests/*.test.cjs
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Prepare Apple authentication
+        if: inputs.upload
+        env:
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          : "${ASC_PRIVATE_KEY:?Set ASC_PRIVATE_KEY in GitHub Actions secrets}"
+          : "${ASC_KEY_ID:?Set ASC_KEY_ID in GitHub Actions secrets}"
+          : "${ASC_ISSUER_ID:?Set ASC_ISSUER_ID in GitHub Actions secrets}"
+          umask 077
+          printf '%s\n' "$ASC_PRIVATE_KEY" > "$RUNNER_TEMP/asc-auth.p8"
+
+      - name: Archive for iPhone and iPad
+        env:
+          UPLOAD: ${{ inputs.upload }}
+          ASC_KEY_ID: ${{ inputs.upload && secrets.ASC_KEY_ID || '' }}
+          ASC_ISSUER_ID: ${{ inputs.upload && secrets.ASC_ISSUER_ID || '' }}
+        run: |
+          if [[ "$UPLOAD" == "true" ]]; then
+            signing=(-allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/asc-auth.p8"
+                     -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          else
+            signing=(CODE_SIGNING_ALLOWED=NO)
+          fi
+          xcodebuild archive -project iOS/LuckyBags.xcodeproj -scheme LuckyBags \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/LuckyBags.xcarchive" "${signing[@]}"
+          app="$RUNNER_TEMP/LuckyBags.xcarchive/Products/Applications/LuckyBags.app"
+          test -x "$app/LuckyBags"
+          test -s "$app/Assets.car"
+          test -s "$app/PrivacyInfo.xcprivacy"
+          diff -qr Game "$app/Game"
+          plutil -extract CFBundleIdentifier raw "$app/Info.plist"
+
+      - name: Save the unsigned verification archive
+        if: ${{ !inputs.upload }}
+        run: ditto -c -k --keepParent "$RUNNER_TEMP/LuckyBags.xcarchive" "$RUNNER_TEMP/LuckyBags-unsigned.zip"
+
+      - name: Attach verification archive
+        if: ${{ !inputs.upload }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: LuckyBags-unsigned-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/LuckyBags-unsigned.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Sign for distribution and upload
+        if: inputs.upload
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/LuckyBags.xcarchive" \
+            -exportOptionsPlist iOS/TestFlightExport.plist -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/asc-auth.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Remove the temporary Apple key
+        if: ${{ always() && inputs.upload }}
+        run: rm -f "$RUNNER_TEMP/asc-auth.p8"
