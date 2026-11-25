@@ -2,8 +2,8 @@
 (function controller(){
   const C=LuckyCore,P=LuckyPlatform,V=LuckyView;
   const root=document.getElementById('game'),message=document.getElementById('messages');
-  let state, introTimer, messageTimer, pointer, blockClickUntil=0, chain=Promise.resolve();
-  const local={page:'home',modals:[],trail:[],catalog:'pink',catalogItem:null,request:'pink',selectedSlot:null,shelfKind:0,shelfVariant:0,orderId:0};
+  let state, introTimer, messageTimer, pointer, draggedElement=null, chain=Promise.resolve();
+  const local={page:'home',modals:[],trail:[],catalog:'pink',catalogItem:null,request:'pink',selectedSlot:null,orderId:0};
   local.chapter=0; local.level=1; local.giftKind=4; local.giftVariant=0;
   function note(text){clearTimeout(messageTimer);message.textContent=text;message.classList.add('show');messageTimer=setTimeout(()=>message.classList.remove('show'),2700);}
   const reduced=()=>state.settings.motion==='on'||(state.settings.motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -25,9 +25,17 @@
     if(!keep&&!dl) root.querySelector('h1')?.setAttribute('tabindex','-1');
   }
   function go(page,remember=false){if(remember)local.trail.push({page:local.page,id:local.orderId,scroll:root.querySelector('.scroll')?.scrollTop||0});else local.trail=[];local.page=page;local.modals=[];local.selectedSlot=null;render(true);}
-  function modal(name){local.modals.push(name);render(true);}
-  function back(){if(local.modals.length)local.modals.pop();else if(local.trail.length){const h=local.trail.pop();local.page=h.page;local.orderId=h.id;render(true);const el=root.querySelector('.scroll');if(el)el.scrollTop=h.scroll;return;}else local.page='home';render(true);}
-  function syncShelf(){const a=state.active;local.shelfKind=a?.choice?.kind??Math.max(0,C.kinds.findIndex(k=>k.drawer===a?.drawer));local.shelfVariant=a?.choice?.variant??0;}
+  const openers=[];
+  function modal(name){
+    const active=document.activeElement;
+    openers[local.modals.length]=active?.dataset.act ? {act:active.dataset.act,val:active.dataset.val} : null;
+    local.modals.push(name);render(true);
+  }
+  function back(){if(local.modals.length){
+      local.modals.pop();const opener=openers[local.modals.length];render(true);
+      if(opener)[...root.querySelectorAll('[data-act]')].find(el=>el.dataset.act===opener.act && el.dataset.val===opener.val && !el.closest('[inert]'))?.focus({preventScroll:true});
+      return;
+    }else if(local.trail.length){const h=local.trail.pop();local.page=h.page;local.orderId=h.id;render(true);const el=root.querySelector('.scroll');if(el)el.scrollTop=h.scroll;return;}else local.page='home';render(true);}
   function queue(fn){const result=chain.then(fn);chain=result.catch(error=>{note(error.message==='conflict'?'另一窗口已更新进度，请从柜台继续。':'存档未写入。请检查本机存储空间，再试一次。');});return chain;}
   async function change(action,arg,draw=true){
     const prev=state,next=C.step(prev,action,arg);
@@ -51,12 +59,12 @@
   const goodsVal=value=>{const [color,kind,variant]=value.split('|');return {color,kind:Number(kind),variant:Number(variant)};};
   function request(){local.request=V.colors[Math.floor(Math.random()*V.colors.length)];go('request');}
   function resetOrderTools(){
-    local.shelfKind=0;local.shelfVariant=0;local.giftKind=4;local.giftVariant=0;
+    local.giftKind=4;local.giftVariant=0;
   }
   function setShelfDrawer(name,edit){
     const idx=C.kinds.findIndex(k=>k.drawer===name);
     if(edit){local.editDrawer=name;local.editKind=idx;local.editVariant=0;local.editGoods=null;render();}
-    else{local.shelfKind=idx;local.shelfVariant=0;return change('drawer',name);}
+    else return change('drawer',name);
   }
   async function act(name,val){
     const a=state.active, n=Number(val);
@@ -64,7 +72,7 @@
       case 'book':local.chapter=Math.floor((C.unlockedLevel(state)-1)/10);go('book',true);return;
       case 'chapter':if(Number.isInteger(n)&&C.chapters[n]){local.chapter=n;render(true);}return;
       case 'level-ticket':
-        if(a){if(a.level===n){syncShelf();go('play');}return;}
+        if(a){if(a.level===n){go('play');}return;}
         if(!C.levels[n-1] || n>C.unlockedLevel(state))return;
         local.level=n;local.request=C.levels[n-1].theme;go('level-request',true);return;
       case 'accept-level':
@@ -79,7 +87,7 @@
         if(await change('return-piece',{bag,index}))sound('tick');return;
       }
       case 'finish-card':await change('finish-card');return;
-      case 'refill':if(await change('refill',n,false)){syncShelf();render(true);}return;
+      case 'refill':if(await change('refill',n,false)){render(true);}return;
       case 'wrap':
         if(a?.bags.some(b=>b.pieces.length<b.quantity)){modal('shortage');return;}
         if(await change('wrap'))sound('place');return;
@@ -98,7 +106,7 @@
       case 'new-order':if(!a)request();else go('play');return;
       case 'wish':if(C.themes[val]){local.request=val;render();sound('tick');}return;
       case 'accept':if(await change('start-free',local.request,false)){resetOrderTools();go('play');sound('bell');}return;
-      case 'resume':if(a){syncShelf();go('play');}return;
+      case 'resume':if(a){go('play');}return;
       case 'pause':modal('pause');return;
       case 'help':modal('help');return;
       case 'replay':startIntro(true);return;
@@ -109,11 +117,11 @@
       case 'tear-all':if(await change('tear',1)){sound('tear');sound('reveal');}return;
       case 'shelf':if(await change('shelf'))sound('tick');return;
       case 'drawer':await setShelfDrawer(val,false);return;
-      case 'kind':local.shelfKind=n;local.shelfVariant=0;await change('clear-choice',null,false);render();return;
-      case 'variant':local.shelfVariant=n;await change('clear-choice',null,false);render();return;
+      case 'kind':await change('browse',{kind:n,variant:0});return;
+      case 'variant':await change('browse',{kind:a.shelfKind??a.choice?.kind??C.kinds.findIndex(k=>k.drawer===a.drawer),variant:n});return;
       case 'stock':{const g=goodsVal(val);if(await change('choose',g))sound('tick');return;}
       case 'take':local.selectedSlot=null;if(await change('take'))sound('tick');return;
-      case 'repick':await change('repick');syncShelf();render();return;
+      case 'repick':await change('repick');render();return;
       case 'loose':local.selectedSlot=null;render();note('点一个空格，把手上的小物放进去。');return;
       case 'slot':{
         if(!a||a.stage!=='pack')return;
@@ -135,7 +143,7 @@
       case 'edit-variant':local.editVariant=n;local.editGoods=null;render();return;
       case 'edit-color':local.editGoods=goodsVal(val);render();return;
       case 'edit-confirm':if(await change('replace',{slot:local.editSlot,goods:local.editGoods},false)){local.selectedSlot=null;back();sound('tick');}return;
-      case 'undo':if(await change('undo',null,false)){syncShelf();local.selectedSlot=null;render(true);note('已撤回上一次配货操作。');}return;
+      case 'undo':if(await change('undo',null,false)){local.selectedSlot=null;render(true);note('已撤回上一次配货操作。');}return;
       case 'next':local.selectedSlot=null;await change('next');return;
       case 'photo':local.selectedSlot=null;if(await change('photo'))sound('tick');return;
       case 'rearrange':await change('rearrange');return;
@@ -155,6 +163,7 @@
   }
   root.addEventListener('pointerdown',event=>{
     const el=event.target.closest('[data-act="add-piece"]');
+    draggedElement=null;
     ignoreStockClick=false;
     if(!el || el.disabled || event.button!==0 || heldStock)return;
     const hold={pointer:event.pointerId,value:el.dataset.val,order:state.active.id,bag:state.active.current};
@@ -176,7 +185,7 @@
   window.addEventListener('blur',stopStockHold);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stopStockHold();});
   root.addEventListener('click',event=>{
-    const el=event.target.closest('[data-act]');if(!el||el.disabled||Date.now()<blockClickUntil)return;
+    const el=event.target.closest('[data-act]');if(!el||el.disabled||event.detail && el===draggedElement)return;
     if(el.dataset.act==='add-piece' && ignoreStockClick && event.detail){ignoreStockClick=false;return;}
     P.unlock();const {act:name,val}=el.dataset;queue(()=>act(name,val));
   });
@@ -204,16 +213,17 @@
     if(p.type==='tear'){
       const next=Math.min(1,Math.max(p.last,p.start+dx/(p.el.clientWidth*.58)));
       p.last=next;p.el.style.setProperty('--cut',(next*100)+'%');
-      if(next-p.lastSaved>=.08||next===1&&p.lastSaved<1){p.lastSaved=next;sound('tear');savePartial(p,next);}
+      if(next-p.lastSaved>=.08){p.lastSaved=next;sound('tear');}
+      if(next===1 && !p.finished){p.finished=true;savePartial(p,1);}
     }else{
       p.el.classList.add('dragging');p.el.style.setProperty('--dx',dx+'px');p.el.style.setProperty('--dy',dy+'px');
     }
   });
   function finishPointer(e,cancelled=false){
     const p=pointer;if(!p||p.id!==e.pointerId)return;pointer=null;
-    if(p.type==='tear'){if(p.last>p.lastSaved)savePartial(p,p.last);return;}
+    if(p.type==='tear'){if(!p.finished && p.last>p.start)savePartial(p,p.last);return;}
     if(!p.moved)return;
-    blockClickUntil=Date.now()+350;
+    draggedElement=p.el;
     p.el.classList.remove('dragging');p.el.style.removeProperty('--dx');p.el.style.removeProperty('--dy');
     if(cancelled)return;
     const target=document.elementFromPoint(e.clientX,e.clientY);
@@ -237,8 +247,8 @@
   const media=matchMedia('(prefers-reduced-motion: reduce)');
   media.addEventListener?.('change',()=>{if(state)root.classList.toggle('reduced',reduced());});
   async function boot(){
-    try {state=await P.read();if(state.seenIntro)go('home');else startIntro();}
-    catch{root.innerHTML='<section class="screen failure"><h1>暂时读不到存档</h1><p>请检查本机存储空间，再试一次。</p><button class="btn primary" id="retry">重新读取</button></section>';root.querySelector('#retry').onclick=boot;}
+    try {state=await P.read();if(state.seenIntro)go('home');else startIntro();if(P.didRecover())note('已恢复上一次保存的进度。');}
+    catch(error){const reason=error.message==='invalid-save'?'存档内容损坏，当前进度和备份均已保留。':'本机存储暂时无法访问，请稍后重试。';root.innerHTML='<section class="screen failure"><h1>暂时读不到存档</h1><p>'+reason+'</p><button class="btn primary" id="retry">重新读取</button></section>';root.querySelector('#retry').onclick=boot;}
   }
   boot();
 })();

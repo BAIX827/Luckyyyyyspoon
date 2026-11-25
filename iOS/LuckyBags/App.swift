@@ -28,10 +28,14 @@ final class GameScene: UIResponder, UIWindowSceneDelegate {
 /// Each message runs on the main actor. The revision check and atomic file
 /// replacement form one transaction, including the order and its earnings.
 final class StoreBridge: NSObject, WKScriptMessageHandlerWithReply {
-    private func saveURL() throws -> URL {
+    private func saveURL(_ slot: String = "current") throws -> URL {
         let base = try FileManager.default.url(for: .applicationSupportDirectory,
                                                 in: .userDomainMask, appropriateFor: nil, create: true)
-        return base.appendingPathComponent("lucky-bags-v1.json")
+        guard ["current", "backup", "orders-a", "orders-b"].contains(slot) else {
+            throw CocoaError(.fileReadInvalidFileName)
+        }
+        let suffix = slot == "current" ? "" : "-" + slot
+        return base.appendingPathComponent("lucky-bags-v1" + suffix + ".json")
     }
 
     private func currentData(at url: URL) throws -> Data? {
@@ -61,13 +65,19 @@ final class StoreBridge: NSObject, WKScriptMessageHandlerWithReply {
         do {
             switch operation {
             case "read":
-                let data = try currentData(at: saveURL())
-                if let data = data {
-                    guard let raw = String(data: data, encoding: .utf8) else { throw CocoaError(.fileReadCorruptFile) }
-                    replyHandler(raw, nil)
-                } else {
-                    replyHandler(NSNull(), nil)
+                let data = try currentData(at: saveURL(body["slot"] as? String ?? "current"))
+                if let data { replyHandler(String(decoding: data, as: UTF8.self), nil) }
+                else { replyHandler(NSNull(), nil) }
+            case "restore":
+                let url = try saveURL()
+                let current = try currentData(at: url).map { String(decoding: $0, as: UTF8.self) }
+                guard let raw = body["raw"] as? String, current == body["observed"] as? String,
+                      try currentData(at: saveURL("backup")) == Data(raw.utf8) else {
+                    replyHandler("conflict", nil)
+                    return
                 }
+                try Data(raw.utf8).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                replyHandler("ok", nil)
             case "write":
                 guard let raw = body["raw"] as? String, let expected = body["expected"] as? Int else {
                     replyHandler(nil, "Invalid save")
@@ -75,13 +85,21 @@ final class StoreBridge: NSObject, WKScriptMessageHandlerWithReply {
                 }
                 let url = try saveURL()
                 let old = try currentData(at: url)
-                let oldRevision = try old.map { try revision(of: $0) } ?? 0
                 let data = Data(raw.utf8)
-                guard oldRevision == expected, try revision(of: data) == expected + 1 else {
+                guard try (old.map { try revision(of: $0) } ?? 0) == expected,
+                      try revision(of: data) == expected + 1 else {
                     replyHandler("conflict", nil)
                     return
                 }
-                try data.write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+                let options: Data.WritingOptions = [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+                if let old { try old.write(to: saveURL("backup"), options: options) }
+                if let archive = body["archive"] as? String {
+                    guard let slot = body["slot"] as? String, ["orders-a", "orders-b"].contains(slot) else {
+                        throw CocoaError(.fileWriteInvalidFileName)
+                    }
+                    try Data(archive.utf8).write(to: saveURL(slot), options: options)
+                }
+                try data.write(to: url, options: options)
                 replyHandler("ok", nil)
             case "haptic":
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()

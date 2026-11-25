@@ -114,3 +114,13 @@ test('empty boxes, skipped reveals, replay and old saves cannot skip campaign pr
   assert.equal(resumed.order.stage,'reveal');
   assert.equal(C.unlockedLevel(resumed.state),1);
 });
+test('shelf selection resumes and undo stays with the current card',()=>{
+  const game=run();
+  game.do('start-level',1);game.do('pick',0);game.do('tear',1);
+  game.do('drawer','纸品');game.do('browse',{kind:4,variant:1});
+  const restored=C.decode(JSON.stringify(game.state)).active;
+  assert.deepEqual([restored.drawer,restored.shelfKind,restored.shelfVariant],['纸品',4,1]);
+  game.do('add-piece',{kind:4,color:'pink',variant:1});game.do('finish-card');
+  game.do('pick',1);game.do('tear',1);game.do('drawer','书写');game.blocked('undo');
+  assert.equal(game.order.bags[0].pieces.length,1);
+});

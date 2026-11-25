@@ -22,8 +22,8 @@
   const drawerButtons=(current,act)=>`<div class="drawers">${drawers.map(name=>button(act,name,'drawer '+(current===name?'chosen':''),name,`aria-pressed="${current===name}"`)).join('')}</div>`;
   function picker(a, local, exchange=false) {
     const target=exchange?a.bags[a.slots[local.editSlot]].kind:a.bags[a.current].kind;
-    const drawer=exchange?local.editDrawer:a.drawer, kind=exchange?local.editKind:local.shelfKind;
-    const variant=exchange?local.editVariant:local.shelfVariant;
+    const drawer=exchange?local.editDrawer:a.drawer, kind=exchange?local.editKind:(a.shelfKind??a.choice?.kind);
+    const variant=exchange?local.editVariant:(a.shelfVariant??a.choice?.variant??0);
     const choice=exchange?local.editGoods:a.choice;
     const card=!exchange && a.gifts ? a.bags[a.current] : null;
     let html=`<div class="ticket slim"><span>图卡想要</span><b>${card?((card.variant===null?C.kinds[target].name:C.itemName(card.color,target,card.variant))+' ×'+card.quantity):C.kinds[target].name}</b>${chip(card?.color||a.theme)}</div>`+drawerButtons(drawer,exchange?'edit-drawer':'drawer');
@@ -104,7 +104,7 @@
   }
   function batchPlay(s,l) {
     const a=s.active,b=a.bags[a.current],opened=C.count(a),n=C.pieceCount(a.bags);
-    const undo=a.history.length?button('undo','撤回','text-btn'):'';
+    const undo=C.canUndo(a)?button('undo','撤回','text-btn'):'';
     let body,bar;
     if(a.stage==='tray') {
       body=`<div class="desk tray-scene"><div class="tray-title"><b>挑一只盲袋</b><small>${a.customer} · ${C.themes[a.theme].name}</small></div><div class="tray">${a.bags.map((card,i)=>card.opened?
@@ -113,7 +113,7 @@
       bar=foot('撕开一袋，看这次要拿什么。',undo);
     } else if(a.stage==='reveal') {
       body=`<div class="desk reveal-scene"><div class="reveal-card batch-card"><small>${chip(b.color)}</small><span class="category-sprite">${sprite(b.color,b.kind,b.variant??0)}</span><strong>${C.kinds[b.kind].name} ×${b.quantity}</strong>${b.variant!==null?'<small>'+C.itemName(b.color,b.kind,b.variant)+'</small>':''}</div><div class="reveal-bag">${bag(b.wrapper,true)}</div></div>`;
-      bar=foot(requirement(b),primary('shelf','去货架挑款'));
+      bar=foot(requirement(b),drawerButtons(null,'drawer'));
     } else if(a.stage==='shelf') {
       body=`<div class="scroll shelf batch-shelf">${picker(a,l)}</div>${trayStrip(a)}`;
       bar=foot(`${C.kinds[b.kind].name}已取 ${b.pieces.length} / ${b.quantity}${a.level===1&&opened===1?' · 打开「'+C.kinds[b.kind].drawer+'」抽屉':''}`,primary('finish-card',opened===5?'查看打包台':'回盲袋托盘')+undo);
@@ -147,7 +147,7 @@
   }
   function play(s,l) {
     if(s.active.gifts && s.active.stage!=='tear') return batchPlay(s,l);
-    const a=s.active, cur=a.current===null?null:a.bags[a.current], placed=C.count(a), undo=(a.history.length?button('undo','撤回','text-btn'):'');
+    const a=s.active, cur=a.current===null?null:a.bags[a.current], placed=C.count(a), undo=(C.canUndo(a)?button('undo','撤回','text-btn'):'');
     let body,bar;
     if(a.stage==='tray'){
       body=`<div class="desk tray-scene"><div class="tray-title"><b>挑一只盲袋</b><small>${a.customer} · 想要${C.themes[a.theme].name}</small></div><div class="tray">${a.bags.map((b,i)=>a.slots.includes(i)?`<div class="used">${icon('star',22)}<b>${C.kinds[b.kind].name}</b><small>已配货</small></div>`:button('pick',bag(b.wrapper)+`<small>${i+1} 号袋</small>`,'tray-bag',i,`aria-label="拆${i+1}号袋"`)).join('')}</div></div>`;

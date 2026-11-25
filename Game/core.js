@@ -118,7 +118,7 @@
     switch(action) {
       case 'pick': {
         if(a.stage!=='tray' || !Number.isInteger(arg) || !a.bags[arg]) return false;
-        a.current=arg; a.drawer=null; a.tear=0;
+        a.current=arg; a.drawer=null; a.tear=0; a.history=[];
         a.stage=a.bags[arg].opened ? 'shelf' : 'tear';
         next.learned.tray=true; break;
       }
@@ -134,10 +134,10 @@
       case 'finish-card':
         if(a.stage!=='shelf') return false;
         a.stage=a.bags.every(b=>b.opened) ? 'pack' : 'tray';
-        a.current=null; a.drawer=null; break;
+        a.current=null; a.drawer=null; a.history=[]; break;
       case 'refill':
         if(a.stage!=='pack' || !Number.isInteger(arg) || !a.bags[arg]?.opened) return false;
-        a.stage='shelf'; a.current=arg; a.drawer=null; break;
+        a.stage='shelf'; a.current=arg; a.drawer=null; a.history=[]; break;
       case 'position': {
         const piece=a.bags[arg?.bag]?.pieces[arg?.index];
         if(a.stage!=='pack' || !piece || ![arg.x,arg.y].every(v=>Number.isFinite(v)&&v>=0&&v<=1))return false;
@@ -145,7 +145,7 @@
       }
       case 'wrap':
         if(a.stage!=='pack' || !a.bags.every(b=>b.opened) || !pieceCount(a.bags)) return false;
-        a.stage='gifts'; break;
+        a.stage='gifts'; a.history=[]; break;
       case 'add-gift':
         if(a.stage!=='gifts' || a.gifts.length>=2 || !validGoods(arg) || !giftKinds.includes(arg.kind) || remaining(a,arg,true)<=0) return false;
         saveUndo(a); a.gifts.push({...arg}); break;
@@ -154,13 +154,13 @@
         saveUndo(a); a.gifts.splice(arg,1); break;
       case 'review':
         if(a.stage!=='gifts') return false;
-        a.stage='pack'; break;
+        a.stage='pack'; a.history=[]; break;
       case 'photo':
         if(a.stage!=='gifts') return false;
         a.stage='seal'; break;
       case 'rearrange':
         if(a.stage!=='seal') return false;
-        a.stage='gifts'; break;
+        a.stage='gifts'; a.history=[]; break;
       case 'stamp':
         if(a.stage!=='seal' || !a.level || a.level%10!==0 || a.stamp) return false;
         a.stamp=true; break;
@@ -199,7 +199,7 @@
     const order = next.active;
     const validIndex = value => Number.isInteger(value) && value >= 0 && value < 5;
     const stage = name => order && order.stage === name;
-    if(order?.gifts && !['intro','setting','tear','shelf','drawer','undo','discard'].includes(action)){
+    if(order?.gifts && !['intro','setting','tear','shelf','drawer','browse','undo','discard'].includes(action)){
       if(!batchAction(next,action,arg)) return state;
       next.revision++;
       return next;
@@ -240,8 +240,13 @@
         if (!stage('reveal')) return state;
         order.stage = 'shelf'; break;
       case 'drawer':
-        if (!stage('shelf') || !kinds.some(k=>k.drawer===arg)) return state;
-        order.drawer = arg; order.choice=null; next.learned.shelf = true; break;
+        if (!(stage('shelf') || (order?.gifts && stage('reveal'))) || !kinds.some(k=>k.drawer===arg)) return state;
+        order.stage='shelf';
+        order.drawer = arg; order.shelfKind=kinds.findIndex(k=>k.drawer===arg); order.shelfVariant=0; order.choice=null; next.learned.shelf = true; break;
+      case 'browse':
+        if (!stage('shelf') || !Number.isInteger(arg?.kind) || kinds[arg.kind]?.drawer!==order.drawer ||
+            ![0,1].includes(arg.variant)) return state;
+        order.shelfKind=arg.kind; order.shelfVariant=arg.variant; order.choice=null; break;
       case 'choose':
         if (!stage('shelf') || !validGoods(arg) || kinds[arg.kind].drawer!==order.drawer) return state;
         order.choice = {...arg}; break;
@@ -264,14 +269,14 @@
         if (!stage('pack') || !arg || !validIndex(arg.slot) || order.slots[arg.slot] === null || !validGoods(arg.goods)) return state;
         saveUndo(order);order.bags[order.slots[arg.slot]].goods = {...arg.goods}; break;
       case 'undo': {
-        if (!order || !order.history.length || order.stage==='seal') return state;
+        if (!canUndo(order)) return state;
         const history=order.history.slice(), restored=history.pop();
         // Draws are fixed for the life of an order, including after an undo.
         next.active={...restored,history}; break;
       }
       case 'next':
         if (!stage('pack') || !order.slots.includes(order.current) || count(order) >= 5) return state;
-        Object.assign(order,{stage:'tray',current:null,tear:0,choice:null,drawer:null}); break;
+        Object.assign(order,{stage:'tray',current:null,tear:0,choice:null,drawer:null,history:[]}); break;
       case 'photo':
         if (!stage('pack') || count(order) !== 5) return state;
         order.stage='seal'; break;
@@ -293,14 +298,55 @@
     next.revision++;
     return next;
   }
-  function decode(raw) {
-    if (raw == null || raw === '') return initial();
-    const value=JSON.parse(raw);
-    if (value.format !== 1 || !Number.isSafeInteger(value.revision) || !Array.isArray(value.orders) ||
-        !value.settings || !value.learned || !Number.isSafeInteger(value.nextId)) throw new Error('存档格式无法读取');
+  function canUndo(order) {
+    const previous=order?.history.at(-1);
+    return !!previous && order.stage!=='seal' && previous.current===order.current &&
+      (previous.stage===order.stage || (!order.gifts && order.stage==='pack' && previous.stage==='shelf'));
+  }
+  const validKind = kind => Number.isInteger(kind) && !!kinds[kind];
+  const validColor = color => Object.hasOwn(themes,color);
+  const validId = id => Number.isSafeInteger(id) && id>0;
+  const validCard = card => card && validKind(card.kind) && validColor(card.color) &&
+    [null,0,1].includes(card.variant) && Number.isSafeInteger(card.quantity) && card.quantity>0 &&
+    Array.isArray(card.pieces) && card.pieces.length<=card.quantity && card.pieces.every(validGoods);
+  function validOrderBase(order) {
+    return order && validId(order.id) && validColor(order.theme) &&
+      (customers.includes(order.customer) || levels.some(l=>l.customer===order.customer));
+  }
+  function validActive(a) {
+    if (!validOrderBase(a) || !Array.isArray(a.bags) || a.bags.length!==5 ||
+        !a.bags.every(b=>b && validColor(b.wrapper)) || !Number.isFinite(a.tear)) return false;
+    const hasCurrent=Number.isInteger(a.current) && a.current>=0 && a.current<5;
+    if ((a.current!==null && !hasCurrent) || (['tear','reveal','shelf'].includes(a.stage) && !hasCurrent)) return false;
+    if (a.gifts) return ['tray','tear','reveal','shelf','pack','gifts','seal'].includes(a.stage) &&
+      (a.level===null || validId(a.level) && !!levels[a.level-1]) &&
+      Array.isArray(a.gifts) && a.gifts.every(validGoods) && a.bags.every(validCard);
+    return ['tray','tear','reveal','shelf','pack','seal'].includes(a.stage) &&
+      a.bags.every(b=>validKind(b.kind) && (b.goods===null || validGoods(b.goods))) &&
+      (a.choice===null || validGoods(a.choice)) && Array.isArray(a.slots) && a.slots.length===5 &&
+      a.slots.every(i=>i===null || Number.isInteger(i) && validGoods(a.bags[i]?.goods)) &&
+      (a.stage!=='pack' || hasCurrent && validGoods(a.bags[a.current].goods));
+  }
+  function validReceipt(o) {
+    if (!validOrderBase(o) || !Array.isArray(o.items) || !o.items.every(validGoods) ||
+        !Array.isArray(o.fresh) || !Number.isFinite(o.satisfaction) || !Number.isFinite(o.earnings)) return false;
+    if (!o.cards) return o.items.every(g=>validKind(g.wish));
+    return Array.isArray(o.cards) && o.cards.length===5 && o.cards.every(validCard) &&
+      Array.isArray(o.gifts) && o.gifts.every(validGoods) && (o.level===null || !!levels[o.level-1]);
+  }
+  function validate(value) {
+    if (value?.format!==1 || !Number.isSafeInteger(value.revision) || value.revision<0 ||
+        !validId(value.nextId) || !Array.isArray(value.orders) || !value.orders.every(validReceipt) ||
+        !value.settings || typeof value.settings.sound!=='boolean' || typeof value.settings.haptic!=='boolean' ||
+        !['system','on','off'].includes(value.settings.motion) || !value.learned ||
+        (value.active!==null && !(validActive(value.active) && Array.isArray(value.active.history) &&
+          value.active.history.every(validActive)))) throw new Error('存档格式无法读取');
     return value;
   }
-  const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,collection,score,packedItems,step,decode,
+  function decode(raw) {
+    return raw==null ? initial() : validate(JSON.parse(raw));
+  }
+  const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,canUndo,validate,collection,score,packedItems,step,decode,
     levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,remaining,giftKinds,unlockedLevel};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
