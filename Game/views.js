@@ -37,7 +37,7 @@
       const picked=choice?.kind===active&&choice.variant===variant&&choice.color===cl;
       const left=card?C.remaining(a,{kind:active,color:cl,variant}):null;
       const disabled=card && (left===0 || card.pieces.length>=card.quantity);
-      return button(exchange?'edit-color':card?'add-piece':'stock',sprite(cl,active,variant)+`<span class="stock-label"><i style="background:${C.themes[cl].swatch}"></i>${C.themes[cl].name}</span>${card?'<small>余 '+left+'</small>':''}`,'stock-item '+(picked?'selected':''),[cl,active,variant].join('|'),`${disabled?'disabled':''} aria-pressed="${picked}" aria-label="${C.themes[cl].name}${C.itemName(cl,active,variant)}"`);
+      return button(exchange?'edit-color':card?'add-piece':'stock',sprite(cl,active,variant)+(card?'<small>×'+left+'</small>':''),'stock-item '+(picked?'selected':''),[cl,active,variant].join('|'),`${disabled?'disabled':''} aria-pressed="${picked}" aria-label="${C.themes[cl].name}${C.itemName(cl,active,variant)}"`);
     }).join('')}</div>`;
     return html;
   }
@@ -52,8 +52,6 @@
   const units=['只','支','本','只','张','只','个','只','条','支','块','个','支','本','卷','枚','个','只','只','面','把','个','只','只'];
   const goodsLabel=g=>C.themes[g.color].name+' · '+packName(g);
   const requirement=b=>C.themes[b.color].name+' '+(b.variant===null ? C.kinds[b.kind].name : C.itemName(b.color,b.kind,b.variant))+' ×'+b.quantity;
-  const levelNote=level=>level.accent ? C.kinds[level.accent.kind].name+'想换成'+C.themes[level.accent.color].name+'。' :
-    level.style ? '想要'+C.itemName(level.theme,level.style.kind,level.style.variant)+'。' : '这盒小物都想要'+C.themes[level.theme].name+'。';
   function chapterBook(s,l) {
     const unlocked=C.unlockedLevel(s), index=l.chapter, chapter=C.chapters[index];
     const best=new Map();
@@ -66,87 +64,63 @@
     }).join('');
     return section(nav('关卡册')+`<div class="scroll level-book"><div class="folio-top"><div><small>第 ${index+1} 章 / 10</small><h2>${chapter.name}</h2><p>${chapter.paper}</p></div><b>${best.size}<small> / 100 单</small></b></div><div class="chapter-nav">${button('chapter','上一章','tab',index-1,index===0?'disabled':'')}<span>${tickets[0].id} – ${tickets[9].id} 关</span>${button('chapter','下一章','tab',index+1,index===9?'disabled':'')}</div>${s.active?'<p class="note">柜台还有一单，回店可继续打包。</p>':''}<div class="folio-list">${rows}</div></div>`,'library');
   }
-  function levelRequest(s,l) {
-    const t=C.levels[l.level-1], chapter=C.chapterFor(t.id);
-    return section(nav('顾客点单')+`<div class="scroll request"><div class="customer-ticket"><span class="mail-stamp">${icon(t.theme,42)}</span><small>${chapter.name} · 第 ${t.id} 关</small><h2>${t.title}</h2><p>${t.customer}说，“${levelNote(t)}”</p><div class="ticket-bottom">${chip(t.theme)}<span>五张卡 · ${t.quantities.reduce((a,b)=>a+b,0)} 件</span></div></div><p class="note">${t.id===1?'从任选一袋开始。第一袋拆开后，跟着图卡去六色抽屉拿货。':'每张图卡会告诉你要挑哪样、拿几件。'}</p></div>`+foot(chapter.paper,primary('accept-level','接下这单',t.id)),'library');
+  function orderCounter(s,l,level=null) {
+    const theme=level?.theme ?? l.request;
+    const customer=level?.customer ?? C.customers[(s.nextId-1)%C.customers.length];
+    const swatches=level?'':`<div class="wish-stamps" role="group" aria-label="订单颜色">${colors.map(k=>button('wish',icon(k,24),'wish-stamp',k,`aria-label="${C.themes[k].name}" title="${C.themes[k].name}" aria-pressed="${k===theme}"`)).join('')}</div>`;
+    const message=level ? level.note : wishes[theme];
+    const sample=level && C.cardsFor(level).find(b=>b.kind===(level.style?.kind??level.accent?.kind??level.feature));
+    return section(`<div class="shop-utilities">${mini('back','back','返回')}</div>
+      <article class="street-ticket order-letter"><i class="binder"></i><div class="letter-head"><span>${customer}的订单</span><small>${level?'第 '+level.id+' 关':'#'+num(s.nextId)}</small></div>
+      <div class="letter-wish"><span class="postmark">${icon(theme,30)}</span><h1>${level?.title??'随心接单'}</h1>${sample?sprite(sample.color,sample.kind,sample.variant??0,C.kinds[sample.kind].name):''}</div>
+      <p class="customer-voice">“${message}”</p>${swatches}
+      <div class="letter-foot"><span>${level?level.quantities.reduce((a,b)=>a+b,0)+' 件小物':'5 只盲袋'}</span>${primary(level?'accept-level':'accept','接单',level?.id??'')}</div></article>`,'shop-front order-front');
   }
-  function trayStrip(a) {
-    const picks=a.bags.flatMap((b,bag)=>b.pieces.map((g,index)=>
-      button('return-piece',sprite(g.color,g.kind,g.variant),'tray-piece',bag+'|'+index,
-        `aria-label="退回${goodsLabel(g)}" title="退回${goodsLabel(g)}"`)));
-    return `<div class="count-tray"><div><b>计数盘</b><small>${picks.length} 件${picks.length?' · 点小物退回':''}</small></div><div class="tray-pieces">${picks.join('') || '<span>取到的小物放在这里</span>'}</div></div>`;
-  }
-  function batchBox(cards,gifts=[],level=null,interactive=false) {
-    const cells=[[.02,.03,.43,.41],[.51,.03,.44,.41],[.02,.53,.40,.42],[.48,.47,.49,.23],[.48,.74,.49,.23]];
-    const pieces=cards.flatMap((b,bag)=>b.pieces.map((g,index)=>{
-      const [left,top,w,h]=cells[bag], width=w/b.pieces.length;
-      const x=Math.max(width/2,Math.min(1-width/2,g.position?.x ?? (left+width*(index+.5))));
-      const y=Math.max(h/2,Math.min(1-h/2,g.position?.y ?? (top+h/2)));
-      const style=`left:${x*100}%;top:${y*100}%;width:${width*100}%;height:${h*100}%`;
-      const image=sprite(g.color,g.kind,g.variant,goodsLabel(g));
-      return interactive ? `<button class="boxed-piece" data-drag="piece" data-bag="${bag}" data-index="${index}" data-act="refill" data-val="${bag}" aria-label="重新配${goodsLabel(g)}" style="${style}">${image}</button>` :
-        `<span class="boxed-piece" style="${style}">${image}</span>`;
-    })).join('');
-    const bonus=gifts.length?`<div class="box-bonus"><small>赠</small>${gifts.map(g=>sprite(g.color,g.kind,g.variant,goodsLabel(g))).join('')}</div>`:'';
-    return `<div class="giftbox photo-box batch-box"><img class="box-art pixel" src="${asset('props/box.png')}" alt="打包盒"><div class="box-interior" data-paper="${level?Math.ceil(level/10):0}">${pieces}</div>${bonus}</div>`;
-  }
-  const orderPhoto=o=>o.cards?batchBox(o.cards,o.gifts,o.level):boxView(o.items);
-  function giftRack(a,l) {
-    const kind=l.giftKind, variant=l.giftVariant, full=a.gifts.length===2;
-    const tabs=C.giftKinds.map(k=>button('gift-kind',C.kinds[k].name,'tab '+(k===kind?'selected':''),k)).join('');
-    const styles=C.kinds[kind].styles.map((v,i)=>button('gift-variant',v,'variant '+(variant===i?'selected':''),i)).join('');
-    const stock=colors.map(color=>{
-      const g={kind,color,variant}, left=C.remaining(a,g,true);
-      return button('gift-add',sprite(color,kind,variant)+`<b>${C.themes[color].name}</b><small>余 ${left}</small>`,'stock-item', [color,kind,variant].join('|'), full || !left?'disabled':`aria-label="加赠${goodsLabel(g)}"`);
-    }).join('');
-    const chosen=a.gifts.map((g,i)=>button('gift-return',sprite(g.color,g.kind,g.variant)+`<span>${goodsLabel(g)}<small>点一下收回</small></span>`,'chosen-gift',i)).join('');
-    return `<div class="scroll gift-table"><div class="gift-heading"><div><small>掌柜的赠品碟</small><h2>封箱前，奶一口？</h2></div><b>${a.gifts.length} / 2</b></div><div class="gift-photo">${batchBox(a.bags,a.gifts,a.level)}</div><div class="gift-well">${chosen || '<span>留空也可以直接封箱</span>'}</div><div class="cat-tabs">${tabs}</div><div class="variants">${styles}</div><div class="stock gift-stock">${stock}</div></div>`;
-  }
-  function batchPlay(s,l) {
-    const a=s.active,b=a.bags[a.current],opened=C.count(a),n=C.pieceCount(a.bags);
-    const undo=C.canUndo(a)?button('undo','撤回','text-btn'):'';
-    let body,bar;
-    if(a.stage==='tray') {
-      body=`<div class="desk tray-scene"><div class="tray-title"><b>挑一只盲袋</b><small>${a.customer} · ${C.themes[a.theme].name}</small></div><div class="tray">${a.bags.map((card,i)=>card.opened?
-        button('pick',icon(card.color,20)+`<b>${C.kinds[card.kind].name}</b><small>${card.pieces.length}/${card.quantity} · 补货</small>`,'used',i):
-        button('pick',bag(card.wrapper)+`<small>${i+1} 号袋</small>`,'tray-bag',i)).join('')}</div></div>`;
-      bar=foot('撕开一袋，看这次要拿什么。',undo);
-    } else if(a.stage==='reveal') {
-      body=`<div class="desk reveal-scene"><div class="reveal-card batch-card"><small>${chip(b.color)}</small><span class="category-sprite">${sprite(b.color,b.kind,b.variant??0)}</span><strong>${C.kinds[b.kind].name} ×${b.quantity}</strong>${b.variant!==null?'<small>'+C.itemName(b.color,b.kind,b.variant)+'</small>':''}</div><div class="reveal-bag">${bag(b.wrapper,true)}</div></div>`;
-      bar=foot(requirement(b),drawerButtons(null,'drawer'));
-    } else if(a.stage==='shelf') {
-      body=`<div class="scroll shelf batch-shelf">${picker(a,l)}</div>${trayStrip(a)}`;
-      bar=foot(`${C.kinds[b.kind].name}已取 ${b.pieces.length} / ${b.quantity}${a.level===1&&opened===1?' · 打开「'+C.kinds[b.kind].drawer+'」抽屉':''}`,primary('finish-card',opened===5?'查看打包台':'回盲袋托盘')+undo);
-    } else if(a.stage==='pack') {
-      const rows=a.bags.map((card,i)=>`<div class="check-row"><div>${chip(card.color)}<b>${C.kinds[card.kind].name} ${card.pieces.length}/${card.quantity}</b></div>${button('refill','重新挑','text-btn',i)}</div>`).join('');
-      body=`<div class="scroll packing-list"><div class="receipt-photo">${batchBox(a.bags,a.gifts,a.level,true)}</div><div class="packing-title"><h2>这单的五张卡</h2><span>已挑 ${n} 件</span></div>${rows}</div>`;
-      bar=foot(n?'拖动小物调整位置，轻点可重新挑货。':'先从任意一张卡挑一件小物。',primary('wrap','收进盒里','',!n)+undo);
-    } else if(a.stage==='gifts') {
-      body=giftRack(a,l);bar=foot('可以送同款或不同款，赠礼由你做主。',primary('photo','准备封箱')+button('review','回到打包台','text-btn')+undo);
-    } else if(a.stage==='seal') {
-      const milestone=a.level && a.level%10===0;
-      const paper=a.level?C.chapterFor(a.level).paper:'小店封签';
-      body=`<div class="scroll packing-list seal-preview"><div class="receipt-photo">${batchBox(a.bags,a.gifts,a.level)}</div><div class="gift-heading"><h2>${a.customer}收</h2>${chip(a.theme)}</div><p>正单 ${n} 件　·　加赠 ${a.gifts.length} 件</p>${a.gifts.map(g=>`<p class="gift-note">赠　${goodsLabel(g)}</p>`).join('')}${milestone?(a.stamp?`<p class="stamp-label">${icon(a.theme,22)} ${paper}</p>`:secondary('stamp','打开本章纪念蛋')):''}<div class="seal-line" data-dropseal>封签贴这里</div><button class="seal-sticker" data-drag="seal" data-act="seal-hint">${icon(a.theme,24)} ${a.stamp?paper:'小店封签'}</button></div>`;
-      bar=foot('贴好寄出，客人就会给你回信。',primary('seal','贴好封签')+button('rearrange','再挑挑赠品','text-btn'));
+  const orderPhoto=o=>o.cards?LuckyCounter.photo(o):boxView(o.items);
+  const uses=['戴着发箍去上课，刘海终于没挡住字。','拿到笔就想试写，我先写了你的店名。','新本子的第一页，我已经写上日期啦。','发夹戴上刚好，低头写字也很牢。','我挑了一张贴在日记的封面上。','硬币装好了，出门再也不用翻包底。','我用发圈扎好了头发，正好出门。','头发一盘，抓夹咔哒一下就扣好了。','发带挺合适，碎头发都拢住了。','我把书里最喜欢的那行划亮了。','刚写错的字，拿新橡皮一擦就干净了。','错的那一格已经盖住，重新写好了。','笔芯按出来一点点，正合手。','我撕了张便签，留在门口给家里人。','花胶带正好够贴住信封口。','流苏露在书外头，一翻就是昨天那页。','星星扣上钥匙串，摇起来叮当响。','车票装进卡套，明早就能用。','散在桌上的小东西全收到袋里了。','小镜子正好塞进我外套的口袋。','梳子已经放在玄关，出门前能用上。','削下来的木屑卷成了一朵小花。','我把四散的纸夹成了整整齐齐的一叠。','杯子刚洗好，第一杯想泡点茶。'];
+  function customerReply(o,level){
+    const shortage=o.cards.find(b=>b.pieces.length<b.quantity);
+    if(shortage)return '我数了两遍，'+C.kinds[shortage.kind].name+'还少'+(shortage.quantity-shortage.pieces.length)+units[shortage.kind]+'。';
+    for(const b of o.cards){
+      const mismatch=b.pieces.find(g=>g.kind!==b.kind||g.color!==b.color||b.variant!==null&&g.variant!==b.variant);
+      if(mismatch){
+        if(mismatch.kind!==b.kind)return '我那袋'+C.kinds[b.kind].name+'里，拆出来一'+units[mismatch.kind]+C.kinds[mismatch.kind].name+'。';
+        if(mismatch.color!==b.color)return C.kinds[b.kind].name+'收到了，我原本想要'+C.themes[b.color].name+'的那款。';
+        return '我认得这款'+C.kinds[b.kind].name+'，不过惦记的是'+C.itemName(b.color,b.kind,b.variant)+'。';
+      }
     }
-    return section(head(s,a)+body+bar,'work');
+    if(level?.reply && C.cardsFor(level).every(b=>o.cards.some(c=>c.kind===b.kind&&c.quantity===b.quantity&&c.color===b.color&&c.variant===b.variant)))return level.reply;
+    const focus=o.cards.find(b=>b.variant!==null||b.color!==o.theme)||o.cards[(o.id-1)%o.cards.length];
+    return uses[focus.kind];
   }
   function giftReply(gifts) {
     if(!gifts.length) return '';
-    const names=gifts.map(goodsLabel);
+    const names=gifts.map(g=>C.themes[g.color].name+'的'+C.kinds[g.kind].name);
     const what=names.length===2 && names[0]===names[1]?'两'+units[gifts[0].kind]+names[0]:names.join('和');
-    return '你还给我多放了'+what+'！'+({1:'我打算用它写下一封回信。',3:'明天出门就戴上。',4:'我想贴在手账的第一页。'}[gifts[0].kind]);
+    return '里面还有'+what+'，谢谢你！';
   }
   function batchReceipt(s,o,detail) {
-    const sc=C.rateCards(o.cards), level=C.levels[o.level-1], reaction=o.satisfaction===100?'数量和颜色都对上了，正是我想收的那一盒！':'收到你的包裹啦，我把配货小票也一起收好。';
+    const sc=C.rateCards(o.cards), level=C.levels[o.level-1];
+    const reaction=customerReply(o,level);
     const rows=o.cards.map((b,i)=>`<div class="receipt-line"><div><b>${requirement(b)}</b><strong>${Number(sc.lines[i].toFixed(2))} / 20</strong></div><p>${b.pieces.map(goodsLabel).join('、')||'这一类空着'}${b.pieces.length<b.quantity?' · 缺 '+(b.quantity-b.pieces.length)+units[b.kind]:''}</p></div>`).join('');
     const first=o.level===100?s.orders.find(x=>x.level===1):null;
-    const photo=first?`<div class="two-photos"><figure>${orderPhoto(first)}<figcaption>阿梨的第一盒</figcaption></figure><figure>${orderPhoto(o)}<figcaption>第一百盒</figcaption></figure></div>`:`<div class="receipt-photo">${orderPhoto(o)}</div>`;
-    const next=level&&o.level<100?primary('level-ticket','接第 '+(o.level+1)+' 关',o.level+1):primary('new-order','随心接单');
-    return section(nav(detail?'订单详情':'这盒装好了',detail?'back':'home')+`<div class="scroll receipt">${photo}<div class="ticket result-ticket"><div class="ticket-top"><small>${o.customer} · ${level?'第 '+o.level+' 关':'随心订单'}</small>${chip(o.theme)}</div><h2>${level?.title || '顾客回信'}</h2><div class="numbers"><div><small>满意度</small><b>${o.satisfaction}<i>%</i></b></div><div><small>本单收益</small><b>+${o.earnings}<i> 星币</i></b></div></div><p>“${reaction}${giftReply(o.gifts)}”</p>${o.stamp?'<p>纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}</div><h2>逐卡对单</h2>${rows}<p class="note">加赠 ${o.gifts.length} 件${o.gifts.length?' · '+o.gifts.map(goodsLabel).join('、'):''}</p></div>`+(detail?'':foot(`累计 ${total(s)} 星币`,next+button('book','打开关卡册','text-btn'))),'library');
+    const photo=first?`<div class="paired-parcels"><figure>${orderPhoto(first)}<figcaption>阿梨的第一盒</figcaption></figure><figure>${orderPhoto(o)}<figcaption>第一百盒</figcaption></figure></div>`:orderPhoto(o);
+    const next=level&&o.level<100?primary('level-ticket','下一单',o.level+1):primary('new-order','随心接单');
+    const gift=o.gifts.length?`<p class="gift-note">赠品 · ${o.gifts.map(goodsLabel).join('、')}</p>`:'';
+    const income=`${icon('star',18)} <b>+${o.earnings}</b> 星币`;
+    const sample=o.sample && C.finishCatalog.find(f=>f.id===o.sample);
+    const tag=sample?`<small class="receipt-sample"><i class="chip-${sample.id}" aria-hidden="true"></i>新样 · ${sample.name} ›</small>`:'';
+    const till=detail?`<span>${income}</span>`:button('showroom',income+(tag||' ›'),'receipt-till',sample?.id||'',
+      sample?`aria-label="试摆陈列新样，${sample.name}"`:'aria-label="用星币挑柜台陈列"');
+    const arrival=Number.isInteger(o.arrival)&&C.kinds[o.arrival]?`<div class="arrival-slip">${sprite(o.theme,o.arrival,0)}<span><small>到货单 · ${C.kinds[o.arrival].drawer}区</small><b>${C.itemName(o.theme,o.arrival,0)}</b></span></div>`:'';
+    return section(`<div class="shop-utilities">${mini(detail?'back':'home','back',detail?'返回':'回到店里')}</div>
+      <div class="delivery-photo" aria-label="本单的装盒照片">${photo}</div>
+      <article class="reply-paper"><div class="scroll reply-scroll"><div class="letter-head"><span>${o.customer}的回信</span><small>#${num(o.id)}</small></div><h1>${level?.title||'包裹收到了'}</h1>
+      <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="reply-totals"><span>满意度 <b>${o.satisfaction}%</b></span>${till}</div>
+      ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}<details class="receipt-details"><summary>配货明细</summary>${rows}${gift}</details></div>
+      ${detail?'':`<div class="letter-foot">${button('book','关卡册','text-btn')}${next}</div>`}</article>`,'shop-front delivery-front');
   }
   function play(s,l) {
-    if(s.active.gifts && s.active.stage!=='tear') return batchPlay(s,l);
     const a=s.active, cur=a.current===null?null:a.bags[a.current], placed=C.count(a), undo=(C.canUndo(a)?button('undo','撤回','text-btn'):'');
     let body,bar;
     if(a.stage==='tray'){
@@ -190,14 +164,12 @@
     return section(nav(detail?'订单详情':'这盒装好了',detail?'back':'home')+`<div class="scroll receipt"><div class="receipt-photo">${boxView(o.items)}</div><div class="ticket result-ticket"><div class="ticket-top"><small>${o.customer} · 订单 ${num(o.id)}</small>${chip(o.theme)}</div><div class="numbers"><div><small>顾客满意度</small><b>${o.satisfaction}<i>%</i></b></div><div><small>本单收益</small><b>+${o.earnings}<i> 星币</i></b></div></div><p>“${reaction}”</p></div><h2>逐件对单</h2><div class="lines">${o.items.map((g,i)=>`<div class="line">${sprite(g.color,g.kind,g.variant)}<div><b>${C.themes[g.color].name} · ${packName(g)}</b><small>${C.kinds[g.wish].name}图卡 · ${sc.lines[i].kindOK?'品类 ✓':'品类不符'} · ${sc.lines[i].colorOK?'颜色 ✓':'颜色不符'}</small></div><strong>+${sc.lines[i].points}</strong></div>`).join('')}</div>${o.fresh.length?`<p class="note">本单点亮 ${o.fresh.length} 款收藏</p>`:''}</div>`+(detail?'':foot(`累计收益 ${total(s)} 星币`,primary('new-order','再接一单')+button('album','查看订单册','text-btn'))),'library');
   }
   function page(s,l){
+    if(l.page==='showroom')return LuckyCounter.showroom(s,l);
     if(l.page==='play' && s.active) return s.active.gifts ? LuckyCounter.render(s,l) : play(s,l);
     if(l.page==='book') return chapterBook(s,l);
-    if(l.page==='level-request') return levelRequest(s,l);
-    if(l.page==='intro')return section(`<div class="intro-art"><div class="shutter"></div><div class="shop-sign">${icon('bag',32)}幸运盲袋</div></div><div class="intro-note"><span>第一张订单</span><b>“帮我挑一盒小东西吧。”</b></div>${button('finish-intro','跳过','skip')}`,'intro');
-    if(l.page==='request'){
-      const customer=C.customers[(s.nextId-1)%C.customers.length], theme=l.request;
-      return section(nav('顾客点单')+`<div class="scroll request"><div class="customer-ticket"><span class="mail-stamp">${icon(theme,45)}</span><small>${customer}的来信 · 订单 ${num(s.nextId)}</small><h2>${wishes[theme]}</h2><div class="ticket-bottom">${chip(theme)}<span>五张品类图卡</span></div></div><h2>顾客的颜色愿望</h2><div class="palette">${colors.map(k=>button('wish',icon(k,27)+C.themes[k].name,'color-choice '+(k===theme?'selected':''),k,`aria-pressed="${k===theme}"`)).join('')}</div><p class="note">这里可以替顾客指定颜色。接单后，六种颜色的现货都会摆在货架上。</p></div>`+foot('按卡上的数量配货，满意度决定本单星币。',primary('accept','接下这单')),'library');
-    }
+    if(l.page==='level-request') return orderCounter(s,l,C.levels[l.level-1]);
+    if(l.page==='intro')return section(`<div class="shutter"></div><h1 class="hanging-sign">${icon('bag',32)}幸运盲袋</h1>${button('finish-intro','开门','skip')}`,'shop-front opening-front');
+    if(l.page==='request')return orderCounter(s,l);
     if(l.page==='result'||l.page==='detail')return receipt(s,l.orderId,l.page==='detail');
     if(l.page==='album')return section(nav('订单册')+`<div class="scroll"><div class="summary-strip"><b>${s.orders.length} 笔已完成</b><span>累计 ${total(s)} 星币</span></div>${s.orders.length?`<div class="album-grid">${[...s.orders].reverse().map(o=>button('detail',orderPhoto(o)+`<b>${o.customer} · ${num(o.id)}</b><small>${C.themes[o.theme].name} · ${o.satisfaction}% · +${o.earnings} 星币</small>`,'album-card',o.id)).join('')}</div>`:noData('订单册还是空的','封好第一盒，这里就会留下它的照片。','home','回到柜台')}</div>`,'library');
     if(l.page==='catalog'){
@@ -208,7 +180,16 @@
       return section(nav('设置')+`<div class="scroll settings">${[['music','店内音乐'],['sound','打包音效'],['haptic','轻触反馈']].map(([k,t])=>button('setting',`<b>${t}</b><span>${s.settings[k]?'开启':'关闭'}</span>`,'setting-row',k,`role="switch" aria-checked="${s.settings[k]}"`)).join('')}<div class="setting-row"><b>减少动态效果</b><select aria-label="减少动态效果" id="motion">${[['system','跟随系统'],['on','开启'],['off','关闭']].map(([k,t])=>`<option value="${k}" ${s.settings.motion===k?'selected':''}>${t}</option>`).join('')}</select></div>${secondary('help','怎么玩')}${secondary('replay','重看开场')}</div>`,'library');
     }
     const upcoming=C.unlockedLevel(s), last=s.orders.some(o=>o.level===100), t=C.levels[upcoming-1];
-    return section(`<header class="home-head"><span class="brand-mark">${icon('bag',30)}</span><h1>幸运盲袋</h1>${mini('settings','gear','设置')}</header><div class="home-hero"><img class="pixel" src="${asset('counter/studio.webp')}" alt="装满彩色文具和发饰的像素杂货铺"><div class="home-balance">${icon('star',15)} ${total(s)} 星币</div></div><div class="home-desk"><div class="shop-ticket"><div class="ticket-top"><small>${s.active?'进行中':'柜台订单夹'}</small><span>${s.active?'订单 '+num(s.active.id):last?'百单已完成':'第 '+upcoming+' / 100 关'}</span></div><h2>${s.active?s.active.customer+'的'+C.themes[s.active.theme].name+'订单':last?'今天想给谁打包？':t.title}</h2><p>${s.active?s.active.gifts?'已开 '+C.count(s.active)+' 袋 · 已挑 '+C.pieceCount(s.active.bags)+' 件':'已有 '+C.count(s.active)+' 件入盒，进度已保留。':last?'翻翻关卡册，也可以随心接一单。':C.chapterFor(upcoming).name+' · '+t.customer+'想要一盒'+C.themes[t.theme].name+'。'}</p></div>${primary(s.active?'resume':last?'new-order':'level-ticket',s.active?'继续打包':last?'随心接单':'接第 '+upcoming+' 关',upcoming)}<div class="home-nav">${secondary('book',icon('bag',23)+'关卡册')}${s.active||last?'':secondary('new-order','随心接单')}${secondary('album',icon('album',23)+'订单册')}${secondary('catalog',icon('catalog',23)+'小物图鉴')}</div></div>`,'home');
+    const customer=s.active?.customer??t.customer,theme=s.active?.theme??t.theme;
+    const docket=s.active ? (s.active.gifts?'已拆 '+C.count(s.active)+' / 5 袋':'已装 '+C.count(s.active)+' / 5 件') : last?'100 / 100 单':('第 '+upcoming+' 关');
+    const book=(act,key,title)=>button(act,icon(key,36)+'<span>'+title+'</span>','counter-book book-'+act);
+    return section(`<h1 class="hanging-sign">${icon('bag',32)}幸运盲袋</h1>
+      <div class="shop-utilities right-tools">${button('showroom',icon('star',20)+' '+C.balance(s)+' · 柜台陈列','shop-balance')}${mini('settings','gear','设置')}</div>
+      <article class="street-ticket home-letter"><i class="binder"></i><div class="letter-head"><span>${s.active?'进行中':last?'关卡册':'今日订单'}</span><small>${docket}</small></div>
+      <div class="letter-wish"><span class="postmark">${icon(theme,30)}</span><h2>${s.active?customer+'的订单':last?'百单已完成':t.title}</h2></div>
+      ${s.active||last?'':`<p>${customer}：“${t.note}”</p>`}
+      ${primary(s.active?'resume':last?'new-order':'accept-level',s.active?'继续打包':last?'随心接单':'接单',upcoming)}</article>
+      <nav class="desk-books" aria-label="店内">${book('book','catalog','关卡册')}${book('album','album','订单册')}${book('catalog','bag','小物图鉴')}${s.active||last?'':book('new-order','shell','随心接单')}</nav>`,'shop-front home-front');
   }
   function dialog(s,l){
     const name=l.modals.at(-1);if(!name)return '';
@@ -216,10 +197,16 @@
     if(name==='ticket'){title=s.active.customer+'的配货单';body=LuckyCounter.receipt(s.active,true);}
     if(name==='pause'){title='暂停打包';body=`<p>订单 ${num(s.active.id)} · ${C.themes[s.active.theme].name} · ${s.active.gifts?'已开':'已装'} ${C.count(s.active)} / 5</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+button('discard-prompt','结束本单并重新接单','text-btn');}
     if(name==='discard'){title='结束这笔订单？';body='<p>这盒还未封箱，本单的小物与收益会一起放弃。</p>'+primary('close','保留本单')+secondary('discard','结束并重新点单');}
-    if(name==='help'){title='怎样配好一盒';body=`<ol class="guide"><li><b>先看顾客点的颜色</b><p>撕袋露卡，看清图卡上的品类、数量和目标颜色。</p></li><li><b>货架上六色都有</b><p>打开抽屉，挑品类、款式和颜色。拿错可以撤回，也可以点盒中小物重新配货。</p></li><li><b>五袋揭晓后，挑赠品、贴封签</b><p>每张卡最多 20 分，缺件按比例计入满意度。赠品可送零至两件，单独记入回信。封好关卡订单就能继续下一关。</p></li></ol>`+primary('close','知道了');}
+    if(name==='help'){title='怎样配好一盒';body=`<ol class="guide"><li><b>先看顾客点的颜色</b><p>撕袋露卡，看清图卡上的品类、数量和目标颜色。</p></li><li><b>货架上六色都有</b><p>点货架上的区域放大，再从架上挑小物。拿错可以撤回，也可以点盒中小物重新配货。</p></li><li><b>五袋揭晓后，挑赠品、贴封签</b><p>每张卡最多 20 分，缺件按比例计入满意度。赠品可送零至两件，单独记入回信。封好关卡订单就能继续下一关。</p></li></ol>`+primary('close','知道了');}
     if(name==='shortage'){title='还有几样没配齐';body=s.active.bags.filter(b=>b.pieces.length<b.quantity).map(b=>'<p>'+requirement(b)+' · 还差 '+(b.quantity-b.pieces.length)+units[b.kind]+'</p>').join('')+primary('close','回去补货')+secondary('wrap-confirm','照单装盒');}
     if(name==='edit'){title='重新配货';body=picker(s.active,l,true)+primary('edit-confirm','替换盒中这件','',!l.editGoods);}
-    if(name==='catalog-item'){const g=l.catalogItem;const id=C.collection(s).get(C.itemKey(g.color,g.kind,g.variant));title=id?packName(g):C.kinds[g.kind].name+'剪影';body=`<div class="detail-art ${id?'':'unknown'}">${sprite(g.color,g.kind,g.variant)}</div><p>${C.themes[g.color].name} · ${id?'首次收录于订单 '+num(id):'在货架上挑选这个款式，并完成封箱即可收藏。'}</p>`+primary('close','合上');}
+    if(name==='catalog-item'){
+      const g=l.catalogItem,id=C.collection(s).get(C.itemKey(g.color,g.kind,g.variant));
+      const delivery=C.deliveries.find(d=>d.kind===g.kind), available=C.stockKinds(s).includes(g.kind);
+      const caption=id?'首次收录于订单 '+num(id):available?'已经上架，随包裹寄出即可收藏。':'寄出关卡册第 '+delivery.after+' 单后到货。';
+      title=id?packName(g):C.kinds[g.kind].name+'剪影';
+      body=`<div class="detail-art ${id?'':'unknown'}">${sprite(g.color,g.kind,g.variant)}</div><p>${caption}</p>`+primary('close','合上');
+    }
     return `<div class="veil"><section class="dialog" role="dialog" aria-modal="true" aria-label="${title}"><header><h2>${title}</h2>${mini('close','close','关闭')}</header>${body}</section></div>`;
   }
   window.LuckyView={page,dialog,colors,icon,button};

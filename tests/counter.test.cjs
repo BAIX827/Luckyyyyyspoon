@@ -30,22 +30,22 @@ test('each of the four fixtures bays offers six kinds in every color, including 
     const s=C.step(C.initial(),'start-free','pink',()=>n/31);
     s.active.bags.forEach(b=>seen.add(b.kind));
   }
-  assert.ok(seen.has(C.kinds.findIndex(k=>k.name==='水杯')));
-  assert.ok(seen.has(C.kinds.findIndex(k=>k.name==='长尾夹')));
+  assert.deepEqual([...seen].sort(),[0,1,2,3,4,5]);
 });
 test('counter reserve is per style and color; sold-out items, returns, undo and next order',()=>{
   const g=counter();g.act('start-level',1);
-  const mug={kind:23,color:'green',variant:0};
-  assert.equal(C.remaining(g.order,mug),3);
+  const pouch={kind:5,color:'green',variant:0};
+  assert.equal(C.remaining(g.order,{kind:23,color:'green',variant:0}),0);
+  assert.equal(C.remaining(g.order,pouch),3);
   for(let i=0;i<3;i++){
-    g.open(i);g.act('station-browse',{kind:23,variant:0});g.act('add-piece',mug);
+    g.open(i);g.act('station-browse',{kind:5,variant:0});g.act('add-piece',pouch);
   }
-  assert.equal(C.remaining(g.order,mug),0);
-  assert.equal(C.remaining(g.order,{...mug,color:'blue'}),3);
-  g.open(3);g.act('station-browse',{kind:23,variant:0});g.blocked('add-piece',mug);
-  g.act('return-piece',{bag:0,index:0});assert.equal(C.remaining(g.order,mug),1);
-  g.act('undo');assert.equal(C.remaining(g.order,mug),0);
-  g.act('discard');g.act('start-level',1);assert.equal(C.remaining(g.order,mug),3);
+  assert.equal(C.remaining(g.order,pouch),0);
+  assert.equal(C.remaining(g.order,{...pouch,color:'blue'}),3);
+  g.open(3);g.act('station-browse',{kind:5,variant:0});g.blocked('add-piece',pouch);
+  g.act('return-piece',{bag:0,index:0});assert.equal(C.remaining(g.order,pouch),1);
+  g.act('undo');assert.equal(C.remaining(g.order,pouch),0);
+  g.act('discard');g.act('start-level',1);assert.equal(C.remaining(g.order,pouch),3);
 });
 test('picking directly from a revealed card uses that rack and leaves a reversible first pick',()=>{
   const g=counter();g.act('start-level',1);
@@ -71,6 +71,9 @@ test('100 orders can ship through the landscape counter, including repositioning
   const g=counter();
   for(let level=1;level<=100;level++){
     g.act('start-level',level);g.blocked('station-pack');
+    const debut=C.deliveries.find(d=>d.after===level-1);
+    if(debut)assert.equal(g.order.bags[0].kind,debut.kind);
+    assert.ok(g.order.bags.every(b=>C.isStocked(g.order,b.kind)));
     for(let i=0;i<5;i++){
       g.open(i);
       const b=g.order.bags[i], variant=b.variant??0;
@@ -84,8 +87,16 @@ test('100 orders can ship through the landscape counter, including repositioning
     g.act('photo');if(level%10===0)g.act('stamp');g.act('seal');g.blocked('seal');
     assert.equal(g.state.orders.at(-1).satisfaction,100);
     assert.equal(g.state.orders.at(-1).gifts.length,level%2);
+    assert.equal(g.state.orders.at(-1).arrival,C.deliveries.find(d=>d.after===level)?.kind??null);
   }
   assert.equal(g.state.orders.length,100);
+  assert.equal(C.stockKinds(g.state).length,24);
+  const orders=g.state.orders;
+  const seen=new Set();
+  for(let n=0;n<30;n++)C.step(g.state,'start-free','blue',()=>n/31).active.bags.forEach(b=>seen.add(b.kind));
+  assert.equal(seen.size,24);
+  const replay=C.step(g.state,'start-level',1);
+  assert.equal(replay.orders,orders);
   const old=C.copy(g.state);delete old.settings.music;
   assert.equal(C.decode(JSON.stringify(old)).settings.music,true);
 });

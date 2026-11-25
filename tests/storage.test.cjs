@@ -48,3 +48,20 @@ test('a damaged archive rolls back to the previous completed order list',async()
   const sealed=C.step(recovered,'seal');await p.write(recovered.revision,sealed);
   assert.equal((await p.read()).orders.length,1);
 });
+
+test('a competing furnishing purchase cannot spend the same earnings twice',async()=>{
+  const {p,db}=fixture();
+  let earned=C.step(C.initial(),'start-level',1);
+  for(let i=0;i<5;i++){
+    earned=C.step(earned,'station-card',i);earned=C.step(earned,'tear',1);
+    const b=earned.active.bags[i];earned=C.step(earned,'add-piece',{kind:b.kind,color:b.color,variant:0});
+  }
+  for(const action of ['station-pack','wrap','photo','seal'])earned=C.step(earned,action);
+  db.set(p.key,JSON.stringify(earned));
+  const first=await p.read(),second=await p.read(),cloth={part:'cloth',id:'tide'};
+  await p.write(first.revision,C.step(first,'furnish',cloth));
+  await assert.rejects(p.write(second.revision,C.step(second,'furnish',cloth)),/conflict/);
+  const saved=await p.read();
+  assert.equal(C.balance(saved),20);assert.equal(saved.display.equipped.cloth,'tide');
+  assert.equal(saved.orders[0].arrival,16);
+});

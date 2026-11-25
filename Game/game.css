@@ -72,7 +72,6 @@ h1{font-size:1.38rem}h2{font-size:1.13rem}.pixel,.bag-art img,.box-art,.icon{ima
 .cat-tabs{margin-block:7px}.tab{min-height:44px;border-color:#a77a64;padding:3px 15px;background:#fff6db;font-weight:bold}
 .variants .variant{flex:1;min-height:44px;background:var(--cream);font-size:.83rem;border-color:#bd9781}.stock{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .stock-item{padding:6px 3px 4px;background:#fff6df;min-width:0;border-color:#aa7d60;display:flex;flex-direction:column;align-items:center;gap:4px}.stock-item .goods{height:clamp(44px,9vh,92px)}
-.stock-label{font-size:.79rem;font-weight:bold;display:flex;gap:4px;align-items:center}.stock-label i{width:.65em;height:.65em;outline:1px solid #79574e}
 .pack-scene,.seal-scene{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:3% 8px 5px}
 .giftbox{position:relative;aspect-ratio:0.825;width:auto;max-width:100%;height:100%;max-height:100%;isolation:isolate}.box-art{width:100%;height:100%;display:block}.live-box{max-height:84%;max-width:88%}
 .box-interior{position:absolute;left:9%;right:9%;top:37%;bottom:8%}.box-slot{position:absolute;padding:1px;border:0;display:grid;place-items:center;color:#975d61;touch-action:none}.box-slot img{max-width:100%;max-height:100%}.box-slot.is-selected{outline:2px dashed var(--ink);outline-offset:0;background:#ffe4c244!important}
