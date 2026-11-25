@@ -41,6 +41,12 @@ window.LuckyPlatform = (() => {
           for(let i=0;i<samples;i++) ch[i]=(Math.random()*2-1)*.115*(1-i/samples)*(i%300<185?1:.25);
           const src=audio.createBufferSource();src.buffer=buf;src.connect(audio.destination);src.start();
         }
+      } else if(which==='paper') {
+        tone(320,.065,0,'triangle',.035,140);
+        tone(780,.04,.025,'sine',.018,420);
+      } else if(which==='clip') {
+        tone(1240,.038,0,'triangle',.055,710);
+        tone(910,.046,.052,'sine',.037,480);
       } else if(which==='seal'||which==='bell') {
         [523,659,784].forEach((n,i)=>tone(n,.21,i*.075,'sine',.048));
       } else if(which==='reveal') {tone(523,.12,0,'triangle');tone(784,.2,.09,'sine');}

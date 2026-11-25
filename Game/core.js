@@ -1,6 +1,8 @@
 'use strict';
 
 (function (root) {
+  const {levels,chapters} = root.LuckyLevels || require('./levels.js');
+  const giftKinds = [4,3,1];
   const themes = {
     pink: { name: '草莓粉', mark: '草莓', swatch: '#f98aa9', pale: '#ffe3dd', dark: '#92354e' },
     blue: { name: '海盐蓝', mark: '贝壳', swatch: '#7ccbdc', pale: '#dcf5ef', dark: '#265e78' },
@@ -23,14 +25,14 @@
     settings: { sound: true, haptic: true, motion: 'system' }, learned: {},
     active: null, orders: []
   });
-  const count = order => order.slots.filter(index => index !== null).length;
+  const count = order => order.gifts ? order.bags.filter(b=>b.opened).length : order.slots.filter(index => index !== null).length;
   const itemName = (theme, kind, variant) =>
     kind === 1 && variant === 0 ? themes[theme].mark + '笔帽按动笔' : kinds[kind].styles[variant];
   const itemKey = (theme, kind, variant) => [theme, kind, variant].join('-');
   function collection(state) {
     const found = new Map();
     for (const order of state.orders) {
-      for (const item of order.items) {
+      for (const item of order.items.concat(order.gifts || [])) {
         const key = itemKey(item.color, item.kind, item.variant);
         if (!found.has(key)) found.set(key, order.id);
       }
@@ -59,6 +61,125 @@
     return item && Number.isInteger(item.kind) && !!kinds[item.kind] &&
       Object.hasOwn(themes,item.color) && [0,1].includes(item.variant);
   }
+  function unlockedLevel(state) {
+    const finished = new Set(state.orders.map(order=>order.level));
+    return levels.find(level=>!finished.has(level.id))?.id || levels.length;
+  }
+  const chapterFor = id => chapters[Math.floor((id-1)/10)];
+  function cardsFor(level) {
+    return level.quantities.flatMap((quantity,kind)=>quantity ? [{
+      kind, quantity, color: level.accent?.kind === kind ? level.accent.color : level.theme,
+      variant: level.style?.kind === kind ? level.style.variant : null
+    }] : []);
+  }
+  function pieceCount(bags) {
+    return bags.reduce((sum,bag)=>sum+bag.pieces.length,0);
+  }
+  function remaining(order, goods, gift=false) {
+    const group = gift ? order.gifts : order.bags.flatMap(b=>b.pieces);
+    const used = group.filter(g=>g.kind===goods.kind && g.color===goods.color && g.variant===goods.variant).length;
+    const capacity = gift ? 2 : (order.bags.find(b=>b.kind===goods.kind)?.quantity || 1);
+    return capacity-used;
+  }
+  function rateCards(cards) {
+    const lines = cards.map(card=>{
+      const points = card.pieces.reduce((sum,g)=>{
+        const sameKind = g.kind===card.kind;
+        const kindPoints = sameKind ? (card.variant===null ? 12 : 8) : 0;
+        const stylePoints = sameKind && card.variant!==null && g.variant===card.variant ? 4 : 0;
+        return sum+kindPoints+stylePoints+(g.color===card.color ? 8 : 0);
+      },0);
+      return points/card.quantity;
+    });
+    const satisfaction=Math.round(lines.reduce((sum,points)=>sum+points,0));
+    return {lines,satisfaction,earnings:satisfaction};
+  }
+  function beginBatch(next, level, theme, random) {
+    const id=next.nextId++;
+    let cards;
+    if (level) {
+      cards=cardsFor(level);
+      for(let i=cards.length-1;i>0;i--) {
+        const j=Math.floor(random()*(i+1));
+        [cards[i],cards[j]]=[cards[j],cards[i]];
+      }
+    } else {
+      cards=shuffled(random).map(kind=>({kind,color:theme,variant:null,
+        quantity:giftKinds.includes(kind) ? 1+Math.floor(random()*(kind===1 ? 2 : 3)) : 1}));
+    }
+    next.active={id,level:level?.id || null,theme,customer:level?.customer || customers[(id-1)%customers.length],
+      stage:'tray',current:null,tear:0,drawer:null,gifts:[],history:[],stamp:false,
+      bags:cards.map((card,i)=>({...card,wrapper:Object.keys(themes)[(id+i)%6],opened:false,pieces:[]}))};
+  }
+  // The bag owns its pieces throughout picking, corrections, and packing.
+  // Shelf counts derive from those pieces so returning or undoing never loses stock.
+  function batchAction(next,action,arg) {
+    const a=next.active, card=a.bags[a.current];
+    switch(action) {
+      case 'pick': {
+        if(a.stage!=='tray' || !Number.isInteger(arg) || !a.bags[arg]) return false;
+        a.current=arg; a.drawer=null; a.tear=0;
+        a.stage=a.bags[arg].opened ? 'shelf' : 'tear';
+        next.learned.tray=true; break;
+      }
+      case 'add-piece':
+        if(a.stage!=='shelf' || !validGoods(arg) || kinds[arg.kind].drawer!==a.drawer ||
+            card.pieces.length>=card.quantity || remaining(a,arg)<=0) return false;
+        saveUndo(a); card.pieces.push({...arg}); break;
+      case 'return-piece': {
+        const bag=a.bags[arg?.bag], index=arg?.index;
+        if(!['shelf','pack'].includes(a.stage) || !bag || !Number.isInteger(index) || !bag.pieces[index]) return false;
+        saveUndo(a); bag.pieces.splice(index,1); break;
+      }
+      case 'finish-card':
+        if(a.stage!=='shelf') return false;
+        a.stage=a.bags.every(b=>b.opened) ? 'pack' : 'tray';
+        a.current=null; a.drawer=null; break;
+      case 'refill':
+        if(a.stage!=='pack' || !Number.isInteger(arg) || !a.bags[arg]?.opened) return false;
+        a.stage='shelf'; a.current=arg; a.drawer=null; break;
+      case 'position': {
+        const piece=a.bags[arg?.bag]?.pieces[arg?.index];
+        if(a.stage!=='pack' || !piece || ![arg.x,arg.y].every(v=>Number.isFinite(v)&&v>=0&&v<=1))return false;
+        saveUndo(a);piece.position={x:arg.x,y:arg.y};break;
+      }
+      case 'wrap':
+        if(a.stage!=='pack' || !a.bags.every(b=>b.opened) || !pieceCount(a.bags)) return false;
+        a.stage='gifts'; break;
+      case 'add-gift':
+        if(a.stage!=='gifts' || a.gifts.length>=2 || !validGoods(arg) || !giftKinds.includes(arg.kind) || remaining(a,arg,true)<=0) return false;
+        saveUndo(a); a.gifts.push({...arg}); break;
+      case 'return-gift':
+        if(a.stage!=='gifts' || !Number.isInteger(arg) || !a.gifts[arg]) return false;
+        saveUndo(a); a.gifts.splice(arg,1); break;
+      case 'review':
+        if(a.stage!=='gifts') return false;
+        a.stage='pack'; break;
+      case 'photo':
+        if(a.stage!=='gifts') return false;
+        a.stage='seal'; break;
+      case 'rearrange':
+        if(a.stage!=='seal') return false;
+        a.stage='gifts'; break;
+      case 'stamp':
+        if(a.stage!=='seal' || !a.level || a.level%10!==0 || a.stamp) return false;
+        a.stamp=true; break;
+      case 'seal': {
+        if(a.stage!=='seal' || !pieceCount(a.bags) || !a.bags.every(b=>b.opened)) return false;
+        const cards=a.bags.map(({kind,color,variant,quantity,pieces})=>({kind,color,variant,quantity,pieces}));
+        const items=cards.flatMap(b=>b.pieces);
+        const known=collection(next);
+        const keys=items.concat(a.gifts).map(g=>itemKey(g.color,g.kind,g.variant));
+        const {satisfaction,earnings}=rateCards(cards);
+        next.orders=next.orders.concat({id:a.id,level:a.level,theme:a.theme,customer:a.customer,
+          completed:arg || new Date().toISOString(),cards,items,gifts:a.gifts,stamp:a.stamp,
+          fresh:[...new Set(keys.filter(key=>!known.has(key)))],satisfaction,earnings});
+        next.active=null; break;
+      }
+      default: return false;
+    }
+    return true;
+  }
   const customers=['阿梨','小满','可可','小岚','团子','阿柚','云朵','南南'];
   function shuffled(random) {
     const values = kinds.map((_, i) => i);
@@ -69,11 +190,29 @@
     return values.slice(0,5);
   }
   function step(state, action, arg, random = Math.random) {
-    const next = copy(state);
+    const next = {...state,learned:{...state.learned},settings:{...state.settings}};
+    if(state.active){
+      const {history,...current}=state.active;
+      // Completed orders and earlier undo snapshots are immutable.
+      next.active={...copy(current),history:history.slice()};
+    }
     const order = next.active;
     const validIndex = value => Number.isInteger(value) && value >= 0 && value < 5;
     const stage = name => order && order.stage === name;
+    if(order?.gifts && !['intro','setting','tear','shelf','drawer','undo','discard'].includes(action)){
+      if(!batchAction(next,action,arg)) return state;
+      next.revision++;
+      return next;
+    }
     switch (action) {
+      case 'start-level': {
+        const level=levels[arg-1];
+        if(order || !Number.isInteger(arg) || !level || arg>unlockedLevel(state)) return state;
+        beginBatch(next,level,level.theme,random); break;
+      }
+      case 'start-free':
+        if(order || !Object.hasOwn(themes,arg)) return state;
+        beginBatch(next,null,arg,random); break;
       case 'intro': next.seenIntro = true; break;
       case 'setting':
         if (!arg || !Object.hasOwn(next.settings,arg.key)) return state;
@@ -93,7 +232,9 @@
       case 'tear':
         if (!stage('tear') || !Number.isFinite(arg) || arg <= order.tear) return state;
         order.tear = Math.min(1,arg);
-        if (order.tear === 1) { order.stage = 'reveal'; next.learned.tear = true; }
+        if (order.tear === 1) { order.stage = 'reveal'; next.learned.tear = true;
+          if(order.gifts) order.bags[order.current].opened=true;
+        }
         break;
       case 'shelf':
         if (!stage('reveal')) return state;
@@ -143,7 +284,7 @@
         const items = packedItems(order);
         const fresh = [...new Set(items.map(it=>itemKey(it.color,it.kind,it.variant)).filter(key=>!known.has(key)))];
         const {satisfaction,earnings}=score(order.theme,items);
-        next.orders.push({id:order.id,theme:order.theme,customer:order.customer,completed:arg || new Date().toISOString(),art:1,items,fresh,satisfaction,earnings});
+        next.orders=next.orders.concat({id:order.id,theme:order.theme,customer:order.customer,completed:arg || new Date().toISOString(),art:1,items,fresh,satisfaction,earnings});
         next.active=null; break;
       }
       case 'discard': if (!order) return state; next.active=null; break;
@@ -159,7 +300,8 @@
         !value.settings || !value.learned || !Number.isSafeInteger(value.nextId)) throw new Error('存档格式无法读取');
     return value;
   }
-  const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,collection,score,packedItems,step,decode};
+  const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,collection,score,packedItems,step,decode,
+    levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,remaining,giftKinds,unlockedLevel};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
 })(globalThis);

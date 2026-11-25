@@ -4,6 +4,7 @@
   const root=document.getElementById('game'),message=document.getElementById('messages');
   let state, introTimer, messageTimer, pointer, blockClickUntil=0, chain=Promise.resolve();
   const local={page:'home',modals:[],trail:[],catalog:'pink',catalogItem:null,request:'pink',selectedSlot:null,shelfKind:0,shelfVariant:0,orderId:0};
+  local.chapter=0; local.level=1; local.giftKind=4; local.giftVariant=0;
   function note(text){clearTimeout(messageTimer);message.textContent=text;message.classList.add('show');messageTimer=setTimeout(()=>message.classList.remove('show'),2700);}
   const reduced=()=>state.settings.motion==='on'||(state.settings.motion==='system'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
   function render(reset=false){
@@ -36,6 +37,7 @@
     state=next;if(draw)render();return true;
   }
   function sound(which){P.play(which,state.settings);}
+  function itemSound(kind){sound(['place','place','book','clip','paper','book'][kind]);}
   function startIntro(replay=false){
     local.replay=replay;go('intro');sound('bell');
     clearTimeout(introTimer);introTimer=setTimeout(()=>queue(()=>finishIntro()),3500);
@@ -48,6 +50,9 @@
   }
   const goodsVal=value=>{const [color,kind,variant]=value.split('|');return {color,kind:Number(kind),variant:Number(variant)};};
   function request(){local.request=V.colors[Math.floor(Math.random()*V.colors.length)];go('request');}
+  function resetOrderTools(){
+    local.shelfKind=0;local.shelfVariant=0;local.giftKind=4;local.giftVariant=0;
+  }
   function setShelfDrawer(name,edit){
     const idx=C.kinds.findIndex(k=>k.drawer===name);
     if(edit){local.editDrawer=name;local.editKind=idx;local.editVariant=0;local.editGoods=null;render();}
@@ -56,20 +61,50 @@
   async function act(name,val){
     const a=state.active, n=Number(val);
     switch(name){
+      case 'book':local.chapter=Math.floor((C.unlockedLevel(state)-1)/10);go('book',true);return;
+      case 'chapter':if(Number.isInteger(n)&&C.chapters[n]){local.chapter=n;render(true);}return;
+      case 'level-ticket':
+        if(a){if(a.level===n){syncShelf();go('play');}return;}
+        if(!C.levels[n-1] || n>C.unlockedLevel(state))return;
+        local.level=n;local.request=C.levels[n-1].theme;go('level-request',true);return;
+      case 'accept-level':
+        if(await change('start-level',n,false)){resetOrderTools();go('play');sound('bell');}return;
+      case 'add-piece':{
+        const goods=goodsVal(val);
+        if(await change('add-piece',goods))itemSound(goods.kind);
+        return;
+      }
+      case 'return-piece':{
+        const [bag,index]=val.split('|').map(Number);
+        if(await change('return-piece',{bag,index}))sound('tick');return;
+      }
+      case 'finish-card':await change('finish-card');return;
+      case 'refill':if(await change('refill',n,false)){syncShelf();render(true);}return;
+      case 'wrap':
+        if(a?.bags.some(b=>b.pieces.length<b.quantity)){modal('shortage');return;}
+        if(await change('wrap'))sound('place');return;
+      case 'wrap-confirm':
+        if(await change('wrap',null,false)){local.modals=[];render(true);sound('place');}return;
+      case 'review':await change('review');return;
+      case 'gift-kind':local.giftKind=n;local.giftVariant=0;render();return;
+      case 'gift-variant':local.giftVariant=n;render();return;
+      case 'gift-add':{const g=goodsVal(val);if(await change('add-gift',g))itemSound(g.kind);return;}
+      case 'gift-return':if(await change('return-gift',n))sound('tick');return;
+      case 'stamp':if(await change('stamp'))sound('reveal');return;
       case 'finish-intro':return finishIntro();
       case 'home':go('home');return;
       case 'back':case 'close':back();return;
       case 'settings':go('settings',true);return;
       case 'new-order':if(!a)request();else go('play');return;
       case 'wish':if(C.themes[val]){local.request=val;render();sound('tick');}return;
-      case 'accept':if(await change('start',local.request,false)){go('play');sound('bell');}return;
+      case 'accept':if(await change('start-free',local.request,false)){resetOrderTools();go('play');sound('bell');}return;
       case 'resume':if(a){syncShelf();go('play');}return;
       case 'pause':modal('pause');return;
       case 'help':modal('help');return;
       case 'replay':startIntro(true);return;
       case 'setting':await change('setting',{key:val,value:!state.settings[val]});return;
       case 'discard-prompt':modal('discard');return;
-      case 'discard':if(await change('discard',null,false))request();return;
+      case 'discard':if(await change('discard',null,false)){if(a.level){local.chapter=Math.floor((a.level-1)/10);go('book');}else request();}return;
       case 'pick':if(await change('pick',n))sound('tick');return;
       case 'tear-all':if(await change('tear',1)){sound('tear');sound('reveal');}return;
       case 'shelf':if(await change('shelf'))sound('tick');return;
@@ -113,8 +148,36 @@
       case 'catalog-item':local.catalogItem=goodsVal(val);modal('catalog-item');return;
     }
   }
+  let heldStock=null, ignoreStockClick=false;
+  function stopStockHold(){
+    if(heldStock)clearTimeout(heldStock.timer);
+    heldStock=null;
+  }
+  root.addEventListener('pointerdown',event=>{
+    const el=event.target.closest('[data-act="add-piece"]');
+    ignoreStockClick=false;
+    if(!el || el.disabled || event.button!==0 || heldStock)return;
+    const hold={pointer:event.pointerId,value:el.dataset.val,order:state.active.id,bag:state.active.current};
+    heldStock=hold;
+    const repeat=async()=>{
+      if(heldStock!==hold || state.active?.id!==hold.order || state.active.current!==hold.bag || local.page!=='play' || local.modals.length)return;
+      ignoreStockClick=true;
+      const goods=goodsVal(hold.value);
+      if(await change('add-piece',goods)){
+        itemSound(goods.kind);
+        if(heldStock===hold)hold.timer=setTimeout(()=>queue(repeat),175);
+      }
+    };
+    P.unlock();hold.timer=setTimeout(()=>queue(repeat),340);
+  });
+  for(const name of ['pointerup','pointercancel'])document.addEventListener(name,event=>{
+    if(heldStock?.pointer===event.pointerId)stopStockHold();
+  });
+  window.addEventListener('blur',stopStockHold);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)stopStockHold();});
   root.addEventListener('click',event=>{
     const el=event.target.closest('[data-act]');if(!el||el.disabled||Date.now()<blockClickUntil)return;
+    if(el.dataset.act==='add-piece' && ignoreStockClick && event.detail){ignoreStockClick=false;return;}
     P.unlock();const {act:name,val}=el.dataset;queue(()=>act(name,val));
   });
   root.addEventListener('change',e=>{if(e.target.id==='motion')queue(()=>change('setting',{key:'motion',value:e.target.value}));});
@@ -154,6 +217,14 @@
     p.el.classList.remove('dragging');p.el.style.removeProperty('--dx');p.el.style.removeProperty('--dy');
     if(cancelled)return;
     const target=document.elementFromPoint(e.clientX,e.clientY);
+    if(p.type==='piece'){
+      const rect=p.el.closest('.box-interior').getBoundingClientRect();
+      const fraction=v=>Math.max(0,Math.min(1,v));
+      const placement={bag:Number(p.el.dataset.bag),index:Number(p.el.dataset.index),
+        x:fraction((e.clientX-rect.left)/rect.width),y:fraction((e.clientY-rect.top)/rect.height)};
+      queue(async()=>{if(state.active?.id===p.order && await change('position',placement))sound('place');});
+      return;
+    }
     if(p.type==='seal'&&target?.closest('[data-dropseal]'))queue(()=>act('seal',''));
     const slot=target?.closest('[data-slot]');if(!slot)return;
     const to=Number(slot.dataset.slot);
