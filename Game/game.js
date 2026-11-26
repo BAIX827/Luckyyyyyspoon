@@ -192,6 +192,8 @@
         if(a){if(a.level===n){go('play');}return;}
         if(!C.levels[n-1] || n>C.unlockedLevel(state))return;
         if(needsUnlock(n)){openUnlock();return;}
+        // The request is set in its chapter's street; decode that scene before showing it.
+        await LuckyFront.prepareChapter(Math.floor((n-1)/10));
         local.level=n;local.request=C.levels[n-1].theme;go('level-request',true);sound('paper');return;
       case 'unlock-full':openUnlock();return;
       case 'purchase':case 'restore':{

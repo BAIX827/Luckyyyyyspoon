@@ -64,7 +64,7 @@
       <div class="order-specification"><div class="order-scoops">${icon('spoon',64)}<span><b>${scoops}</b><small>满勺</small></span></div>
         <div class="order-color"><small>喜欢</small>${icon(theme,42)}<b>${C.themes[theme].name}</b></div></div>
       <p class="order-greeting">“帮我装得满满的。”</p>${options}${swatches}
-      <div class="letter-foot">${primary(level?'accept-level':'accept','接下这单',level?.id??'')}</div></article>`,'shop-front order-front');
+      <div class="letter-foot">${primary(level?'accept-level':'accept','接下这单',level?.id??'')}</div></article>`,'shop-front order-front'+(level&&level.id>10?' chapter-'+Math.ceil(level.id/10):''));
   }
   const orderPhoto=o=>o.cards?LuckyCounter.photo(o):boxView(o.items);
   const uses=['戴着发箍去上课，刘海终于没挡住字。','拿到笔就想试写，我先写了你的店名。','新本子的第一页，我已经写上日期啦。','发夹戴上刚好，低头写字也很牢。','我挑了一张贴在日记的封面上。','硬币装好了，出门再也不用翻包底。','我用发圈扎好了头发，正好出门。','头发一盘，抓夹咔哒一下就扣好了。','发带挺合适，碎头发都拢住了。','我把书里最喜欢的那行划亮了。','刚写错的字，拿新橡皮一擦就干净了。','错的那一格已经盖住，重新写好了。','笔芯按出来一点点，正合手。','我撕了张便签，留在门口给家里人。','花胶带正好够贴住信封口。','流苏露在书外头，一翻就是昨天那页。','星星扣上钥匙串，摇起来叮当响。','车票装进卡套，明早就能用。','散在桌上的小东西全收到袋里了。','小镜子正好塞进我外套的口袋。','梳子已经放在玄关，出门前能用上。','削下来的木屑卷成了一朵小花。','我把四散的纸夹成了整整齐齐的一叠。','杯子刚洗好，第一杯想泡点茶。'];

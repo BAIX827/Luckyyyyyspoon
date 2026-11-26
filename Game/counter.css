@@ -470,3 +470,14 @@
 .box-action.is-ready{animation:ready-bob 1.1s steps(2,end) infinite}
 @keyframes ready-bob{50%{translate:0 -3px}}
 @media (prefers-reduced-motion:reduce){.box-action.is-ready{animation:none}}
+
+/* From chapter two on, the order arrives in that chapter's street instead of the shop. */
+.shop-front.chapter-2{background:#7c6a55 url(assets/front/chapters/02-study.webp) 50% center / cover no-repeat}
+.shop-front.chapter-3{background:#7c6a55 url(assets/front/chapters/03-post.webp) 60% center / cover no-repeat}
+.shop-front.chapter-4{background:#7c6a55 url(assets/front/chapters/04-greenhouse.webp) 40% center / cover no-repeat}
+.shop-front.chapter-5{background:#7c6a55 url(assets/front/chapters/05-seaside.webp) 20% center / cover no-repeat}
+.shop-front.chapter-6{background:#7c6a55 url(assets/front/chapters/06-rain.webp) 60% center / cover no-repeat}
+.shop-front.chapter-7{background:#7c6a55 url(assets/front/chapters/07-nightmarket.webp) 60% center / cover no-repeat}
+.shop-front.chapter-8{background:#7c6a55 url(assets/front/chapters/08-craft.webp) 60% center / cover no-repeat}
+.shop-front.chapter-9{background:#7c6a55 url(assets/front/chapters/09-neighbors.webp) 55% center / cover no-repeat}
+.shop-front.chapter-10{background:#7c6a55 url(assets/front/chapters/10-celebration.webp) 40% center / cover no-repeat}
