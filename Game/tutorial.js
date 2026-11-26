@@ -91,7 +91,7 @@ window.LuckyTutorial = (() => {
       if (scene.dataset.camera !== 'near' || !find('.shelf-bay.inspected'))
         return instruction('bay',`[data-act="station-bay"][data-val="${drawer}"]`,'点开货架');
       const selector = `.shelf-bay.inspected [data-act="add-piece"][data-val="${b.color}|${b.kind}|${b.variant ?? 0}"]`;
-      return instruction('pick',selector,'把它放进盒子');
+      return instruction('pick',selector,'放进盒子');
     }
     if (!hint?.target || hint.target.disabled || !hint.target.getClientRects().length) { clearTutorial(); return; }
     const key = lesson + ':' + hint.key;
@@ -135,6 +135,15 @@ window.LuckyTutorial = (() => {
       const box = game.querySelector(stepTarget.matches('.pour-prop') ? '.waiting-tray' : '[data-box]')?.getBoundingClientRect();
       if (box) { dx = box.left - bounds.left + box.width * .5 - x; dy = box.top - bounds.top + box.height * .45 - y; }
     }
+    const caption = tutorialLayer.querySelector('.tutorial-caption');
+    // Drag instructions belong at the destination; the animated hand starts at the item.
+    const anchor = gestureKind === 'drag' ? game.querySelector(stepTarget.matches('.pour-prop') ? '.waiting-tray' : '[data-box]') : stepTarget;
+    const target = anchor?.getBoundingClientRect() || r;
+    const left = target.left - bounds.left + (target.width-caption.offsetWidth)/2;
+    const above = target.top - bounds.top - caption.offsetHeight - 4;
+    const top = above >= 8 ? above : target.bottom - bounds.top + 4;
+    caption.style.left = Math.round(Math.max(6,Math.min(left,bounds.width-caption.offsetWidth-6)))+'px';
+    caption.style.top = Math.round(Math.max(6,Math.min(top,bounds.height-caption.offsetHeight-6)))+'px';
     demo.style.setProperty('--travel-x',dx+'px');
     demo.style.setProperty('--travel-y',dy+'px');
   }

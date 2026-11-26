@@ -111,11 +111,17 @@
 .parcel.sealed{aspect-ratio:205/168;width:min(100%,122cqh)}
 .parcel .dispatch-card{position:absolute;z-index:1;left:12%;top:16%;width:32%;font-size:clamp(8px,1.15vw,14px);padding:.3em .45em;transform:rotate(-4deg);border-width:2px}
 .parcel .dispatch-card>small:last-child{display:none}.parcel>.physical-prop{position:absolute;inset:0}
-.parcel .tissue{inset:40% 11% 22%;z-index:1;position:absolute}
+/* Both masks follow the existing 205 × 179 open-box sprite. */
+.parcel-content{position:absolute;inset:0;z-index:1;clip-path:polygon(1% 69%,28% 33%,96% 42%,96% 57%,82% 94%,1% 89%)}
+.parcel .tissue{inset:40% 11% 17% 10%;position:absolute}
+.parcel>.parcel-rim{z-index:2;clip-path:polygon(0 69%,81% 82%,96% 48%,100% 48%,100% 100%,0 100%)}
+.parcel-item img{transform:rotate(var(--tilt,0deg))}
+.parcel .parcel-gift{z-index:104}
+
 .parcel-item,.parcel-gift{position:absolute;padding:0;touch-action:none;transform:translate(-50%,-50%);width:25%;height:48%;opacity:1!important}.parcel-gift{transform:none;bottom:0;width:20%;height:40%;background:#ffe8c6;border:1px dashed #ad8069}
 .counter-item{width:100%;height:100%;object-fit:contain;pointer-events:none}
 .parcel-item.misfit{outline:2px dashed #c0574b;outline-offset:-2px;background:#f9d9cf99}
-.parcel-item.dragging{z-index:3;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy)))!important}
+.parcel-item.dragging{z-index:110!important;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy)))!important}
 .box-action{position:absolute;z-index:2;bottom:1%;left:50%;transform:translateX(-50%);background:#d6e5bc;border-color:#668562;color:#2e503a;box-shadow:inset 0 -3px #abc292,2px 2px #637654;min-height:44px;font-weight:800;padding:0 1.1em}
 .postage-sticker,.dispatch-card{align-self:center;display:grid;justify-items:center;gap:.3em;background:#fff4d7;border:3px dashed #bd886b;padding:.6em 1em;text-align:center;transform:rotate(-5deg)}
 .postage-sticker{touch-action:none}.dispatch-card{gap:0}.dispatch-card small{font-size:.7em}.barcode{width:100%;height:.6em;margin:.4em 0;background:repeating-linear-gradient(90deg,#6c584b 0 2px,transparent 2px 4px,#6c584b 4px 5px,transparent 5px 7px)}
@@ -471,3 +477,21 @@
 .shop-front.chapter-8{background:#7c6a55 url(assets/front/chapters/08-craft.webp) 60% center / cover no-repeat}
 .shop-front.chapter-9{background:#7c6a55 url(assets/front/chapters/09-neighbors.webp) 55% center / cover no-repeat}
 .shop-front.chapter-10{background:#7c6a55 url(assets/front/chapters/10-celebration.webp) 40% center / cover no-repeat}
+
+/* Paper, folded envelope and pull tabs share the counter's stationery palette. */
+.delivery-front .mail-envelope{position:absolute;right:4%;bottom:5%;width:40%;height:45%;background:linear-gradient(32deg,transparent 49%,#b58160 50%,#eed0a3 51%) left/51% 100% no-repeat,linear-gradient(-32deg,transparent 49%,#b58160 50%,#eed0a3 51%) right/51% 100% no-repeat,#dcb285;border:3px solid #9a7154;transform:rotate(5deg);box-shadow:3px 4px #825e47}
+.delivery-front .reply-paper,.order-front .order-letter{border:0;background:repeating-linear-gradient(0deg,transparent 0 23px,#ba986522 23px 24px),#fff0cd;box-shadow:2px 0 #ceae86,-2px 0 #ceae86,0 2px #b38b65,3px 5px #a47a56,6px 8px #61402f66}
+.delivery-front .reply-paper{transform:rotate(-1deg);bottom:max(9%,var(--safe-bottom));border-left:5px solid #efdcaf}
+.reply-paper:before{content:'';position:absolute;right:11px;top:9px;width:29px;height:31px;background:#cdd9b7 url(assets/items/pink-4-0.png) center/25px no-repeat;border:3px dotted #fff0cd;outline:1px solid #a9ab8d;image-rendering:pixelated;pointer-events:none}
+.reply-paper .letter-head{margin-right:43px;border:0}.reply-paper h1{color:#69473d;margin:.35em 0 .5em}
+.reply-paper .customer-voice{line-height:1.7}.letter-signature{text-align:right;font-weight:bold;color:#705042}
+.reply-paper .reply-totals{background:transparent;padding:0;border:0}
+.reply-paper .order-stars{color:#985a30;border:2px dashed #ba865f;padding:2px 6px;transform:rotate(-4deg)}
+.reply-paper .receipt-till{background:transparent;border:0;box-shadow:none}
+.reply-paper .arrival-slip{position:relative;margin:.6em 4px .4em auto;width:fit-content;padding:5px 12px;background:#e1e5c8;border:0;box-shadow:2px 2px #b9b494}
+.arrival-slip:before{content:'';position:absolute;right:11%;top:-4px;width:24px;height:7px;background:#cfad71cc}
+.reply-paper .letter-foot,.order-letter .letter-foot{border:0}
+.reply-paper .letter-foot .primary,.order-front .letter-foot .primary{border:0;border-radius:0;background:#bcd0b1;color:#324b3b;box-shadow:inset 0 -3px #91aa87;clip-path:polygon(0 0,100% 0,100% 100%,0 100%,6px 50%)}
+.order-front .order-letter{transform:translateY(-50%) rotate(-1deg);overflow:auto}
+.order-letter .order-stub{color:#63493b;background:transparent;box-shadow:none;border-bottom:2px dashed #c6a47b;margin:0}
+@media(orientation:portrait){.delivery-front .mail-envelope{width:80%;bottom:3%;right:6%}.delivery-front .reply-paper{bottom:6%}}

@@ -124,25 +124,22 @@ window.LuckyCounter = (() => {
   function parcel(a) {
     const total = C.pieceCount(a.bags), sealed = a.stage==='seal';
     const layoutTotal=a.mode==='scoop'?a.bags.reduce((sum,b)=>sum+b.quantity,0):total;
-    let n = 0, reserved = 0;
-    const starts=a.bags.map(b=>{const first=reserved;reserved+=b.quantity;return first;});
-    // A grid shaped like the tissue bed (about 2.3:1), filled row by row in order-card order,
-    // so a large order reads as neat rows of goods instead of a few tall streaks.
-    const columns=Math.max(4,Math.min(14,Math.ceil(Math.sqrt(layoutTotal*1.9))));
-    const rows=Math.max(2,Math.ceil(layoutTotal/columns));
-    const wide=Math.min(25,128/columns), tall=Math.max(12,Math.min(48,135/rows)), half=tall/200;
-    const size=`width:${wide}%;height:${tall}%`;
+    const scale=Math.max(.78,Math.min(1.15,4.8/Math.sqrt(Math.max(1,layoutTotal))));
     const pieces = a.bags.flatMap((b,bag)=>b.pieces.map((g,index)=>{
-      const slot=a.mode==='scoop'?starts[bag]+index:n++;
-      const x=g.position?.x??(.07+((slot%columns)+.5)*(.86/columns));
-      const y=Math.min(1-half,Math.max(half,g.position?.y??((Math.floor(slot/columns)+.5)/rows)));
+      // Offset successive pieces within a loose pile. Coordinates stay stable as other cards fill.
+      const seed=bag*17+index+1;
+      const spread=(step,offset)=>(seed*step+offset)%1;
+      const x=Math.min(.96,Math.max(.04,g.position?.x??(.12+.76*spread(.618034,.13))));
+      const y=Math.min(.97,Math.max(.05,g.position?.y??(.16+.77*spread(.414214,.35))));
+      const angle=Math.round(36*spread(.754878,.22)-18);
+      const size=`width:${32*scale}%;height:${65*scale}%;z-index:${1+Math.round(y*100)};--tilt:${angle}deg`;
       const wrong=b.opened!==false && !C.fits(b,g)?' misfit':'';
       if(a.stage==='photo')return `<span class="parcel-item${wrong}" style="left:${x*100}%;top:${y*100}%;${size}">${item(g)}</span>`;
       return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;${size}" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
     })).join('');
     const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'':'disabled'}`)).join('');
     const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${num(a.id)}</small></div>`:'';
-    return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${address}${sealed?'':`<div class="tissue box-interior">${pieces}${bonus}</div>`}</div>`;
+    return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${address}${sealed?'':`<div class="parcel-content"><div class="tissue box-interior">${pieces}${bonus}</div></div>${prop('counter/parcel-open.webp','parcel-rim')}`}</div>`;
   }
 
   function hand(a) {

@@ -129,3 +129,121 @@
 }
 @media (prefers-reduced-motion:reduce) {.scene * {animation:none!important}}
 .map-stop[aria-pressed="true"]:has(.delivered) .here-flag {bottom:calc(50% + var(--node-size) * .51 + 15px)}
+
+/* The shop's paper props share one stock and edge; the street sign stays painted wood. */
+:root{
+  --note-stock:repeating-linear-gradient(0deg,transparent 0 23px,#b99a6820 23px 24px),#fff0cd;
+  --note-edge:1px solid #c3a17b;
+  --note-corners:5px 6px 12px 5px;
+  --note-shadow:1px 2px #be9a72,3px 5px #65463055;
+}
+.street-ticket-card,.counter-scene .ticket-paper,.veil .dialog,
+.delivery-front .reply-paper,.order-front .order-letter{
+  background:var(--note-stock);border:var(--note-edge);
+  border-radius:var(--note-corners);box-shadow:var(--note-shadow);
+}
+.street-ticket-card{transform:rotate(-1deg);padding-block:9px}
+.street-ticket-card::before,.counter-note .binder{
+  background:#c1c9a1;border:0;border-radius:2px;height:8px;
+  box-shadow:inset 0 -2px #a7b18a;transform:rotate(-4deg)
+}
+.street-scene .take-ticket,.veil .dialog>.btn.primary{
+  background:#c6d6b1;color:#354e3b;border:1px solid #9ba987;border-radius:4px 5px 9px 4px;
+  box-shadow:inset 0 -2px #acbd98,1px 2px #ac9575
+}
+.take-ticket::before,.take-ticket::after{display:none}
+.street-scene .chapter-sign,.street-scene .map-progress{border-radius:4px 5px 7px 4px}
+.counter-scene .scoop-current{background:#ebdbb866;border:0;border-radius:4px 5px 8px 4px}
+.veil{background:#48362670}
+.veil .dialog{position:relative;padding:18px 16px 14px}
+.veil .dialog::before{content:'';position:absolute;top:0;left:calc(50% - 24px);width:48px;height:7px;background:#bdc79e;border-radius:0 0 2px 2px}
+.veil .dialog header{border-bottom:1px dashed #bba082;padding-bottom:5px}
+.veil .dialog>.btn:not(.primary){border:1px solid #c7ab85;border-radius:5px;background:#f5e4c3;color:#6e503e;box-shadow:0 2px #cfb794}
+
+.in-game-tutorial .tutorial-caption,.in-game-tutorial .skip-lesson{
+  clip-path:none;transform:none;background:#fff0c8;color:#614938;border:var(--note-edge);
+  border-radius:var(--note-corners);box-shadow:var(--note-shadow)
+}
+.in-game-tutorial .tutorial-caption{width:max-content;padding:4px 9px;pointer-events:none}
+.tutorial-caption p{font-size:13px;letter-spacing:0}
+.in-game-tutorial .skip-lesson{padding:4px 8px;background:#e9debd}
+.street-scene .walk,.street-scene .home-key,.dialog header button,.counter-tools .pixel-tool{
+  border:1px solid #9f8162;border-radius:5px 6px 8px 5px;color:#624936;background:#f6e6c4;
+  box-shadow:inset 0 -2px #deca9e,1px 2px #927553
+}
+#game:has(>.shop-book){width:100%;height:100dvh;max-height:none;padding:max(13px,3dvh,env(safe-area-inset-top)) max(16px,6vw,env(safe-area-inset-right)) max(13px,3dvh,env(safe-area-inset-bottom)) max(16px,6vw,env(safe-area-inset-left));background:#aa8061 url(assets/counter/tabletop.webp) center/cover}
+.library.shop-book{--cover:#779580;width:min(100%,790px);position:relative;border:0;border-left:13px solid var(--cover);border-radius:5px 12px 12px 5px;
+  background:var(--note-stock);box-shadow:0 2px #b49a77,0 4px #f0dbb1,0 7px var(--cover),3px 9px #785c45;overflow:hidden}
+.shop-book.order-album{--cover:#b88370}.shop-book.shop-settings{--cover:#a69b6b;max-width:570px}
+.shop-book>.nav,.shop-book>.scroll{background:transparent}
+.shop-book>.nav{border-bottom:1px dashed #bda17c}
+.shop-book>.nav h1{color:#5b4637}
+.shop-book .summary-strip{border:0;border-bottom:1px dashed #c8ad84;background:transparent;border-radius:0;padding:2px 0 8px}
+.specimen-book .catalog-grid{grid-template-columns:repeat(auto-fit,minmax(92px,1fr))}
+.specimen-book .catalog-item{background:transparent;border:0;border-bottom:1px dotted #b69a78;border-radius:0;box-shadow:none}
+.specimen-book .palette button,.shop-book .tool,.shop-settings .btn{background:#f8eaca;border:1px solid #b39b7c;border-radius:5px 5px 9px 5px;box-shadow:0 2px #c6b18c}
+.specimen-book .palette .selected{background:#dbe5c6;border-color:#81926c}
+.order-album .album-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr))}
+.order-album .album-card{position:relative;background:#fff9e6;border:1px solid #d4bd99;border-radius:3px;box-shadow:2px 3px #bda482}
+.order-album .album-card:before{content:'';position:absolute;top:-4px;left:35%;width:30%;height:9px;background:#c4c69dcf;transform:rotate(-3deg)}
+.shop-settings .setting-row{background:transparent;border:0;border-bottom:1px dashed #bba482;border-radius:0;box-shadow:none}
+.shop-settings [role=switch] span{padding:3px 12px;border-radius:5px;background:#e7d9ba}
+.shop-settings [aria-checked=true] span{background:#d4dfba;color:#435840}
+.showroom .finish-book{background:var(--note-stock);border:var(--note-edge);border-radius:var(--note-corners);box-shadow:var(--note-shadow)}
+@media(min-width:740px) and (orientation:landscape){
+  .specimen-book .palette.compact{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* A wide stationery sheet has a fabric binding; smaller notes only take a strip. */
+:root{
+  --gingham:repeating-linear-gradient(90deg,#df809650 0 5px,transparent 5px 10px),
+    repeating-linear-gradient(0deg,#e892a450 0 5px,#fff1dd 5px 10px);
+  --lace:radial-gradient(ellipse at 50% 0,#fff7dd 0 55%,#ca9a7d 58% 65%,transparent 68%) 0 100%/12px 6px repeat-x;
+}
+.veil .dialog,.order-front .order-letter,.delivery-front .reply-paper,.shop-book>.nav,.showroom .finish-book{
+  background:var(--lace),var(--gingham),var(--note-stock);
+  background-position:0 11px,0 0,0 0,0 0;
+  background-size:12px 6px,100% 12px,100% 12px,auto;
+  background-repeat:repeat-x,no-repeat,no-repeat,repeat;
+}
+.veil .dialog{padding-top:24px}
+.veil .dialog::before{
+  height:10px;width:58px;left:calc(50% - 29px);top:1px;background:#c0ceaa;
+  box-shadow:0 1px #9da583;transform:rotate(-2deg)
+}
+.veil .dialog header::before{
+  content:'';position:absolute;top:0;left:calc(50% - 9px);width:18px;height:12px;background:#d97c93;
+  clip-path:polygon(0 0,22% 0,45% 30%,55% 30%,78% 0,100% 0,100% 75%,76% 75%,62% 57%,70% 100%,53% 100%,47% 66%,38% 100%,22% 100%,37% 57%,22% 75%,0 75%);pointer-events:none
+}
+.veil .dialog header button{background:#f7c9ca;border-color:#bf8690;box-shadow:inset 0 -2px #e3a5ae,1px 2px #a78a75}
+.berry-seal{align-self:flex-end;margin:-4px 0 0;pointer-events:none;line-height:1;filter:drop-shadow(1px 1px 0 #fff)}
+.shop-book>.nav,.showroom .finish-book{padding-top:20px}
+.order-front .order-letter{padding-top:16px}
+.delivery-front .reply-paper{padding-top:21px}
+.street-ticket-card,.counter-scene .ticket-paper{background:var(--gingham),var(--note-stock);background-size:100% 6px,100% 6px,auto;background-repeat:no-repeat,no-repeat,repeat}
+.counter-scene .ticket-paper{padding-top:max(8px,.7em)}
+.in-game-tutorial .tutorial-caption::before,.order-album .album-card::before,.arrival-slip::before{
+  content:'';position:absolute;top:-3px;left:8%;width:17px;height:6px;background:var(--gingham);transform:rotate(-8deg);pointer-events:none
+}
+
+/* Embroidered binding: tiny eyelets sit inside each scallop. */
+.veil .dialog,.delivery-front .reply-paper,.order-front .order-letter,.shop-book>.nav,.showroom .finish-book{
+  --thread:#e497aa;
+  background-image:radial-gradient(circle at 50% 45%,#ce9780 0 1px,transparent 1.4px),
+    radial-gradient(ellipse at 50% 0,#fff9df 0 60%,#cb9b7a 62% 68%,transparent 70%),
+    repeating-linear-gradient(90deg,transparent 0 6px,#fff4df88 6px 12px),
+    repeating-linear-gradient(0deg,var(--thread) 0 5px,#f5d6bf 5px 10px),var(--note-stock);
+  background-size:14px 6px,14px 9px,100% 14px,100% 14px,auto;
+  background-position:0 14px,0 14px,0 0,0 0,0 0;
+  background-repeat:repeat-x,repeat-x,no-repeat,no-repeat,repeat
+}
+.specimen-book>.nav{--thread:#90b99a}.order-album>.nav{--thread:#ce97ad}.shop-settings>.nav{--thread:#c3afd1}
+.shop-book .nav-spacer{height:27px;width:23px;background:var(--thread);border-inline:2px dotted #fff6d8;clip-path:polygon(0 0,100% 0,100% 100%,50% 75%,0 100%);transform:rotate(6deg)}
+.veil .dialog header h2{display:flex;align-items:center;gap:7px}
+.dialog header h2 img{transform:rotate(-12deg);filter:drop-shadow(1px 1px #fff)}
+.veil .dialog::before{width:76px;height:14px;left:calc(50% - 38px);background:repeating-linear-gradient(90deg,#bdcfaa 0 5px,#ccd6b6 5px 8px)}
+.veil .dialog header::before{width:24px;height:16px;left:calc(50% - 12px);background:linear-gradient(90deg,#df899e 0 38%,#f3b3b4 38% 61%,#cf748b 61%)}
+.dialog .expanded-lines .note-line:nth-child(odd){background-color:#eeb0a615}
+.counter-scene .ticket-paper .binder,.street-ticket-card::before{background:repeating-linear-gradient(90deg,#a4b893 0 4px,#c7d5af 4px 8px);border-block:1px dotted #f5f1d0}
+.reply-paper .letter-signature::before{content:'✿';color:#b56278;margin-right:.4em}
+.order-front .order-letter .order-stub{padding-top:16px}
