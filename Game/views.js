@@ -93,6 +93,8 @@
   function batchReceipt(s,o,detail) {
     const sc=C.rateCards(o.cards), level=C.levels[o.level-1];
     const reaction=customerReply(o,level);
+    const stars=C.levelStars(o.satisfaction);
+    const rating=level ? `<span class="order-stars" aria-label="本单 ${stars} 星，满分三星">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>` : '';
     const rows=o.cards.map((b,i)=>`<div class="receipt-line"><div><b>${requirement(b)}</b><strong>${Number(sc.lines[i].toFixed(2))} / ${Number((100/o.cards.length).toFixed(2))}</strong></div><p>${b.pieces.map(goodsLabel).join('、')||'这一类空着'}${b.pieces.length<b.quantity?' · 缺 '+(b.quantity-b.pieces.length)+units[b.kind]:''}</p></div>`).join('');
     const first=o.level===100?s.orders.find(x=>x.level===1):null;
     const photo=first?`<div class="paired-parcels"><figure>${orderPhoto(first)}<figcaption>阿梨的第一盒</figcaption></figure><figure>${orderPhoto(o)}<figcaption>第一百盒</figcaption></figure></div>`:orderPhoto(o);
@@ -107,8 +109,8 @@
     return section(`<div class="shop-utilities">${mini(detail?'back':'home','back',detail?'返回':'回到店里')}</div>
       <div class="delivery-photo" aria-label="本单的装盒照片">${photo}</div>
       <article class="reply-paper"><div class="scroll reply-scroll"><div class="letter-head"><span>${o.customer}的回信</span><small>#${num(o.id)}${o.mode==='scoop'?' · '+o.scoopTarget+' 勺':''}</small></div><h1>${level?C.levelName(level.id):'包裹收到了'}</h1>
-      <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="reply-totals"><span>满意度 <b>${o.satisfaction}%</b></span>${till}</div>
-      ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}<details class="receipt-details"><summary>配货明细</summary>${rows}${gift}</details></div>
+      <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="reply-totals"><span>${rating}满意度 <b>${o.satisfaction}%</b></span>${till}</div>
+      ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}<details class="receipt-details"><summary>配货明细</summary>${level?'<p>满意度达 60%、80%、95%，分别得一星、二星、三星。</p>':''}${rows}${gift}</details></div>
       ${detail?'':`<div class="letter-foot">${button('book','关卡册','text-btn')}${next}</div>`}</article>`,'shop-front delivery-front');
   }
   function play(s,l) {

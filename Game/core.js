@@ -141,6 +141,12 @@
     const used = group.filter(g=>g.kind===goods.kind && g.color===goods.color && g.variant===goods.variant).length;
     return stockCapacity(order,goods.kind,gift) - used;
   }
+  function levelStars(satisfaction) {
+    if (satisfaction >= 95) return 3;
+    if (satisfaction >= 80) return 2;
+    if (satisfaction >= 60) return 1;
+    return 0;
+  }
   function rateCards(cards) {
     const lines = cards.map(card=>{
       const points = card.pieces.reduce((sum,g)=>{
@@ -565,7 +571,7 @@
   const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,canUndo,validate,collection,score,packedItems,step,decode,
     levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,stockCapacity,remaining,giftKinds,unlockedLevel,
     deliveries,stockKinds,isStocked,finishCatalog,finishes,ownsFinish,finishAvailable,completedLevels,balance,
-    scoopsFor,scoopSize,levelName};
+    scoopsFor,scoopSize,levelName,levelStars};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
 })(globalThis);
