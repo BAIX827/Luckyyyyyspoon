@@ -85,8 +85,8 @@ test('each chapter uses a distinct packaged scene and its own ten route stops', 
 });
 
 test('level stars use inclusive thresholds and the map keeps the best replay', () => {
-  assert.deepEqual([0,59,60,79,80,94,95,100].map(C.levelStars),[0,0,1,1,2,2,3,3]);
-  const state = {...C.initial(), orders:[{level:1,satisfaction:95},{level:1,satisfaction:59},{level:2,satisfaction:50}]};
+  assert.deepEqual([0,59,60,79,80,94,95,99,100].map(C.levelStars),[0,0,1,1,2,2,2,2,3]);
+  const state = {...C.initial(), orders:[{level:1,satisfaction:100},{level:1,satisfaction:59},{level:2,satisfaction:50}]};
   const map = front().book(state,{chapter:0,selectedLevel:1});
   assert.ok(map.includes(C.levelName(1)+'，最高 3 星'));
   assert.ok(map.includes(C.levelName(2)+'，最高 0 星'));

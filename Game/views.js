@@ -91,15 +91,26 @@
     return '里面还有'+what+'，谢谢你！';
   }
   function batchReceipt(s,o,detail) {
-    const sc=C.rateCards(o.cards), level=C.levels[o.level-1];
+    const level=C.levels[o.level-1];
     const reaction=customerReply(o,level);
     const stars=C.levelStars(o.satisfaction);
     const rating=level ? `<span class="order-stars" aria-label="本单 ${stars} 星，满分三星">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>` : '';
-    const rows=o.cards.map((b,i)=>`<div class="receipt-line"><div><b>${requirement(b)}</b><strong>${Number(sc.lines[i].toFixed(2))} / ${Number((100/o.cards.length).toFixed(2))}</strong></div><p>${b.pieces.map(goodsLabel).join('、')||'这一类空着'}${b.pieces.length<b.quantity?' · 缺 '+(b.quantity-b.pieces.length)+units[b.kind]:''}</p></div>`).join('');
+    // Only lines that went wrong are listed; a clean box needs no breakdown.
+    const rows=o.cards.map(b=>{
+      const wrong=new Map();
+      for(const g of b.pieces)if(!C.fits(b,g)){const name=goodsLabel(g);wrong.set(name,(wrong.get(name)||0)+1);}
+      const missing=b.quantity-b.pieces.length;
+      if(!wrong.size&&missing<=0)return '';
+      const notes=[...wrong].map(([name,n])=>'混入 '+name+' ×'+n).concat(missing>0?['缺 '+missing+units[b.kind]]:[]);
+      return `<div class="receipt-line"><div><b>${requirement(b)}</b></div><p>${notes.join(' · ')}</p></div>`;
+    }).join('');
+    const chapter=o.level?Math.floor((o.level-1)/10):-1;
+    const earlier=s.orders.filter(x=>x.id!==o.id&&x.id<o.id);
+    const crowned=chapter>=0&&C.perfectChapters(earlier.concat(o))[chapter]&&!C.perfectChapters(earlier)[chapter];
+    const crown=crowned?`<p class="chapter-crown">${C.chapters[chapter].name} 全部三星 · ${icon('star',16)} <b>+${C.chapterBonus}</b> 星币</p>`:'';
     const first=o.level===100?s.orders.find(x=>x.level===1):null;
     const photo=first?`<div class="paired-parcels"><figure>${orderPhoto(first)}<figcaption>阿梨的第一盒</figcaption></figure><figure>${orderPhoto(o)}<figcaption>第一百盒</figcaption></figure></div>`:orderPhoto(o);
     const next=level&&o.level<100?primary('level-ticket','下一单',o.level+1):primary('new-order','随心接单');
-    const gift=o.gifts.length?`<p class="gift-note">赠品 · ${o.gifts.map(goodsLabel).join('、')}</p>`:'';
     const income=`${icon('star',18)} <b>+${o.earnings}</b> 星币`;
     const sample=o.sample && C.finishCatalog.find(f=>f.id===o.sample);
     const tag=sample?`<small class="receipt-sample"><i class="chip-${sample.id}" aria-hidden="true"></i>新样 · ${sample.name} ›</small>`:'';
@@ -109,8 +120,8 @@
     return section(`<div class="shop-utilities">${mini(detail?'back':'home','back',detail?'返回':'回到店里')}</div>
       <div class="delivery-photo" aria-label="本单的装盒照片">${photo}</div>
       <article class="reply-paper"><div class="scroll reply-scroll"><div class="letter-head"><span>${o.customer}的回信</span><small>#${num(o.id)}${o.mode==='scoop'?' · '+o.scoopTarget+' 勺':''}</small></div><h1>${level?C.levelName(level.id):'包裹收到了'}</h1>
-      <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="reply-totals"><span>${rating}满意度 <b>${o.satisfaction}%</b></span>${till}</div>
-      ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}<details class="receipt-details"><summary>配货明细</summary>${level?'<p>满意度达 60%、80%、95%，分别得一星、二星、三星。</p>':''}${rows}${gift}</details></div>
+      <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="reply-totals"><span>${level?rating:'满意度 <b>'+o.satisfaction+'%</b>'}</span>${till}</div>${crown}
+      ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}${rows?`<div class="receipt-fixes">${rows}</div>`:''}</div>
       ${detail?'':`<div class="letter-foot">${button('book','关卡册','text-btn')}${next}</div>`}</article>`,'shop-front delivery-front');
   }
   function play(s,l) {

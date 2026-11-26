@@ -66,6 +66,7 @@ window.LuckySound = (() => {
     else if(name==='zip'){for(let i=0;i<6;i++)rub(.029,.23,940+160*i,i*.016);}
     else if(name==='seal'){rub(.18,.3,1650);[65,69,72,77].forEach((m,i)=>play(hz(m),.47,.13+i*.078,.11));}
     else if(name==='gift'||name==='reveal'||name==='bell'){[72,76,79].slice(0,name==='gift'?3:2).forEach((m,i)=>play(hz(m),.25,i*.077,.11));}
+    else if(name==='miss'){play(392,.09,0,.09,'triangle',370);play(311,.14,.09,.09,'triangle',262);}
     else if(name.startsWith('match')){const i=Number(name.slice(5))||0;play(hz([72,76,79,84][i%4]),.27,.065,.095);}
     else play(540,.06,0,.11,'triangle',255);
   }

@@ -67,14 +67,14 @@ window.LuckyTutorial = (() => {
     else if (a.stage === 'drawn') hint = instruction('pour','.pour-prop',delivery ? C.kinds[delivery.kind].name+'到货 · 倒进盘里' : '倒进盘里');
     else if (lesson === 'first-order') {
       if (a.current === firstBag && a.stage === 'shelf' && card) {
-        const wrong = card.pieces.findIndex(g => g.kind !== card.kind || g.color !== card.color || card.variant !== null && g.variant !== card.variant);
+        const wrong = card.pieces.findIndex(g => !C.fits(card,g));
         if (wrong >= 0) hint = instruction('return',`[data-act="return-piece"][data-val="${a.current}|${wrong}"]`,'点一下，退回');
         else if (card.pieces.length < card.quantity) hint = pickingHint(card,false);
       } else if (a.stage === 'pack') hint = instruction('wrap','[data-act="wrap"]','配齐了，挑赠品');
       else if (a.stage === 'gifts') hint = instruction('gifts','[data-act="photo"]','贴上封签');
       else if (a.stage === 'seal') hint = instruction('send','[data-act="seal"]','寄给客人');
     } else if (card?.kind === delivery.kind) {
-      const correct = card.pieces.some(g => g.kind === card.kind && g.color === card.color && (card.variant === null || g.variant === card.variant));
+      const correct = card.pieces.some(g => C.fits(card,g));
       if (correct) { clearTutorial(); return; }
       if (a.stage === 'shelf') hint = pickingHint(card);
     }
@@ -115,7 +115,9 @@ window.LuckyTutorial = (() => {
     if (!tutorialLayer || !stepTarget?.isConnected) return;
     const r = stepTarget.getBoundingClientRect(), bounds = game.getBoundingClientRect();
     let x = r.left - bounds.left + r.width / 2, y = r.top - bounds.top + r.height / 2;
-    if (stepTarget.matches('.scoop-prop')) y = r.top - bounds.top + r.height * .32;
+    if (stepTarget.matches('.scoop-prop, .pour-prop')) y = r.top - bounds.top + r.height * .32;
+    // Point at the sticker's lower edge so the hand does not cover its words.
+    if (stepTarget.matches('.postage-sticker')) y = r.bottom - bounds.top - 4;
     const halo = tutorialLayer.querySelector('.tutorial-halo'), demo = tutorialLayer.querySelector('.gesture-demo');
     const size = gestureKind === 'drag' ? Math.max(30,Math.min(r.width,r.height) * .9) : 44;
     Object.assign(halo.style,{left:x+'px',top:y+'px',width:size+'px',height:size+'px'});

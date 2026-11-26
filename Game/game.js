@@ -77,6 +77,7 @@
     const image='assets/items/'+goods.color+'-'+goods.kind+'-'+goods.variant+'.png';
     if(!await change('add-piece',goods,false))return false;
     render();
+    const misfit=card && !C.fits(card,goods);
     itemSound(goods.kind);
     const packed=state.active.bags[state.active.current];
     if(slot && C.remaining(state.active,goods)>0){
@@ -105,9 +106,13 @@
       }
     }
     sound([0,2,4,5,6,8,13,14,15,17,18].includes(goods.kind)?'land-soft':'land-hard');
+    if(misfit){
+      local.streak=0;sound('miss',.06);
+      const wrong=root.querySelector(`.parcel-item[data-bag="${a.current}"][data-index="${card.pieces.length}"]`);
+      wrong?.animate?.([{translate:'0 0'},{translate:'-3px 0'},{translate:'3px 0'},{translate:'0 0'}],{duration:240,easing:'steps(4,end)'});
+    }
     if(packed.pieces.length===packed.quantity){
-      const matched=packed.pieces.every(g=>g.kind===card.kind && g.color===card.color &&
-        (card.variant===null || g.variant===card.variant));
+      const matched=packed.pieces.every(g=>C.fits(card,g));
       if(matched){sound('match'+(local.streak%4));local.streak++;root.querySelector('.ticket-paper')?.classList.add('stamping');}else local.streak=0;
     }
     if(state.active?.id===a.id && state.active.current===a.current && local.page==='play' &&
@@ -198,13 +203,18 @@
       case 'station-card':
         if(await change('station-card',n,false)){
           const card=a.bags[n];
-          if(!card.opened || C.kinds[card.kind].drawer!==local.zoomBay)local.zoomBay=null;
+          // A bead on the tray goes straight to the bay that stocks it.
+          if(a.mode==='scoop' && card.opened)local.zoomBay=C.kinds[card.kind].drawer;
+          else if(!card.opened || C.kinds[card.kind].drawer!==local.zoomBay)local.zoomBay=null;
           if(local.modals.at(-1)==='ticket')local.modals.pop();
           render();sound(card.opened?'paper':'beads');
           const focus=local.zoomBay?'station-close-rack':card.opened?'ticket-zoom':'tear-all';
           root.querySelector(`[data-act="${focus}"]`)?.focus({preventScroll:true});
         }else if(a?.stage==='shelf' && a.current===n && local.modals.at(-1)==='ticket'){
           back();
+        }else if(a?.mode==='scoop' && a.stage==='shelf' && a.current===n && !local.zoomBay){
+          local.zoomBay=C.kinds[a.bags[n].kind].drawer;render();sound('book');
+          root.querySelector('[data-act="station-close-rack"]')?.focus({preventScroll:true});
         }
         return;
       case 'station-unpack': if(await change('station-unpack'))sound('paper');return;

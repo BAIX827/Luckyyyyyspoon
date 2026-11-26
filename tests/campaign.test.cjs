@@ -200,3 +200,22 @@ test('unfinished old orders keep their original shelves and previously shipped g
   const locked={kind:11,color:'blue',variant:0};
   pickCard(resumed,0);resumed.do('drawer','书写');resumed.blocked('add-piece',locked);
 });
+
+test('three stars need a flawless box; a chapter of three-star levels pays a bonus once',()=>{
+  const card={kind:4,color:'pink',variant:null,quantity:5,opened:true};
+  const right={kind:4,color:'pink',variant:0}, wrong={kind:2,color:'pink',variant:0};
+  const many=Array.from({length:10},()=>({...card,quantity:10,pieces:Array(10).fill(right)}));
+  many[0]={...many[0],pieces:[...Array(9).fill(right),wrong]};
+  assert.equal(C.rateCards(many).satisfaction,99);
+  assert.equal(C.levelStars(C.rateCards(many).satisfaction),2);
+  assert.equal(C.rateCards([{...card,pieces:Array(5).fill(right)}]).satisfaction,100);
+  assert.ok(C.fits(card,right));assert.ok(!C.fits(card,wrong));
+  const orders=Array.from({length:10},(_,i)=>({level:i+1,satisfaction:100,earnings:100}));
+  const s={...C.initial(),orders};
+  assert.equal(C.perfectChapters(orders)[0],true);
+  assert.equal(C.balance(s),1000+C.chapterBonus);
+  s.orders=orders.concat({level:3,satisfaction:80,earnings:80});
+  assert.equal(C.balance(s),1080+C.chapterBonus);
+  s.orders=orders.slice(0,9).concat({level:10,satisfaction:99,earnings:99});
+  assert.equal(C.perfectChapters(s.orders)[0],false);
+});

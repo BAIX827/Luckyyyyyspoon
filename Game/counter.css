@@ -23,18 +23,25 @@
   width:100%; background:#f6e0bc; border:3px solid #ba9274;
   box-shadow:inset 0 0 0 3px #fff0cf,inset 0 0 0 5px #d6b28b,2px 3px #926a50;
 }
-.waiting-tray {min-height:35px; max-height:40%; overflow:auto; pointer-events:auto}.waiting-tray:empty {height:35px}
+.waiting-tray {min-height:35px; max-height:40%; overflow:auto; pointer-events:auto}
+.waiting-tray:empty {background:radial-gradient(ellipse 42% 34% at 50% 52%,#fffaf0 0 62%,#ead2ac 63% 70%,transparent 71%),#f6e0bc}
 .pour-prop {touch-action:none}
 .live-beads {align-self:center; max-height:100%; min-height:0; overflow:auto; align-content:flex-start; pointer-events:auto; scrollbar-width:thin}
-.tray-bead {position:relative; padding:3px; min-width:36px; min-height:36px; display:grid; place-items:center}
-.bead-pile {position:relative; display:block; width:clamp(22px,3.1vw,39px); aspect-ratio:1}
+.tray-bead {position:relative; padding:4px; min-width:44px; min-height:44px; display:grid; place-items:center}
+.bead-goods {display:block; width:clamp(24px,3.2vw,44px); aspect-ratio:1}
+.counter-scene[data-camera="near"] .bead-goods {width:clamp(20px,2.3vw,30px)}
+.counter-scene[data-camera="near"] .live-beads {padding:6px; gap:4px}
+.counter-scene[data-camera="near"] .tray-bead {min-width:32px; min-height:32px; padding:2px}
+.bead-goods .counter-item {width:100%; height:100%; object-fit:contain; image-rendering:pixelated}
+.bead-pile {position:absolute; left:-2px; top:-2px; z-index:1; display:block; width:clamp(15px,1.9vw,22px); aspect-ratio:1}
 .bead-pile .lucky-bead {position:absolute; inset:0; width:100%}
-.bead-pile .lucky-bead:nth-child(2) {translate:2px -3px}
-.bead-pile .lucky-bead:nth-child(3) {translate:4px -6px}
 .tray-bead>small {position:absolute; right:-3px; bottom:-2px; font:700 10px/1.1 monospace; color:#63493d; background:#fff0c8; padding:1px}
 .tray-bead.active {background:#fff5cd; outline:2px solid #9b6a54}
 .tray-bead.collected::after {content:'✓'; position:absolute; bottom:0; right:0; background:#c8dbaf; color:#365a40; padding:0 2px; font-size:12px; border:1px solid #66794f}
-.tray-bead.collected .lucky-bead {opacity:.5}
+.tray-bead.collected .bead-goods {opacity:.45}
+.tray-bead.misfit::after {content:'!'; position:absolute; bottom:0; right:0; background:#f3c4b8; color:#8a3a33; padding:0 4px; font:800 12px/1.2 monospace; border:1px solid #9d5148}
+.misfit-count {font-style:normal; font-size:.72em; color:#8a3a33; background:#f9d9cf; border:1px solid #c98576; padding:0 4px; white-space:nowrap}
+.has-misfit em strong {color:#9d4a3f}
 .loaded-spoon {position:relative; width:80%; min-height:75px; flex:1; display:grid; place-items:center; padding-bottom:18px}
 .spoon-bowl {position:relative; z-index:1; width:clamp(110px,15vw,190px); aspect-ratio:1.24; background:#d2dee0; border:3px solid #7b8991; box-shadow:inset 3px 3px #f9f0d3,inset -3px -4px #aab6b8; transform:rotate(-7deg); clip-path:polygon(0 32%,6% 32%,6% 17%,16% 17%,16% 7%,31% 7%,31% 0,69% 0,69% 7%,84% 7%,84% 17%,94% 17%,94% 32%,100% 32%,100% 68%,94% 68%,94% 83%,84% 83%,84% 93%,69% 93%,69% 100%,31% 100%,31% 93%,16% 93%,16% 83%,6% 83%,6% 68%,0 68%)}
 .spoon-token {position:absolute; display:block; width:clamp(18px,2.7vw,30px); aspect-ratio:1; translate:-50% -50%}
@@ -101,10 +108,13 @@
 .drawn-card img{width:85%;height:100%;min-height:0;object-fit:contain}.drawn-card b{position:absolute;right:-9%;top:0;font-size:.85em;background:#ffe5ae;border:1px solid #987052;padding:0 3px}
 @keyframes draw-card{from{translate:0 24%}}
 .parcel-space{container-type:size}.parcel{position:relative;width:min(100%,114cqh);height:auto;aspect-ratio:205/179;align-self:end}
-.parcel.sealed{aspect-ratio:205/168;width:min(100%,122cqh)}.parcel>.physical-prop{position:absolute;inset:0}
+.parcel.sealed{aspect-ratio:205/168;width:min(100%,122cqh)}
+.parcel .dispatch-card{position:absolute;z-index:1;left:12%;top:16%;width:32%;font-size:clamp(8px,1.15vw,14px);padding:.3em .45em;transform:rotate(-4deg);border-width:2px}
+.parcel .dispatch-card>small:last-child{display:none}.parcel>.physical-prop{position:absolute;inset:0}
 .parcel .tissue{inset:40% 11% 22%;z-index:1;position:absolute}
 .parcel-item,.parcel-gift{position:absolute;padding:0;touch-action:none;transform:translate(-50%,-50%);width:25%;height:48%;opacity:1!important}.parcel-gift{transform:none;bottom:0;width:20%;height:40%;background:#ffe8c6;border:1px dashed #ad8069}
 .counter-item{width:100%;height:100%;object-fit:contain;pointer-events:none}
+.parcel-item.misfit{outline:2px dashed #c0574b;outline-offset:-2px;background:#f9d9cf99}
 .parcel-item.dragging{z-index:3;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy)))!important}
 .box-action{position:absolute;z-index:2;bottom:1%;left:50%;transform:translateX(-50%);background:#d6e5bc;border-color:#668562;color:#2e503a;box-shadow:inset 0 -3px #abc292,2px 2px #637654;min-height:44px;font-weight:800;padding:0 1.1em}
 .postage-sticker,.dispatch-card{align-self:center;display:grid;justify-items:center;gap:.3em;background:#fff4d7;border:3px dashed #bd886b;padding:.6em 1em;text-align:center;transform:rotate(-5deg)}
@@ -262,7 +272,10 @@
   content:"";position:absolute;top:2px;bottom:2px;width:8px;border:2px solid #7c593a;background:#cc9a5e;box-shadow:inset 2px 2px #f0cc86
 }
 [data-rack="cherry"] .cabinet-base::before{left:3%}[data-rack="cherry"] .cabinet-base::after{right:3%}
-.vacant .cubby-stock{box-shadow:inset 0 2px #5537222e;background:repeating-linear-gradient(90deg,#c9a27813 0 2px,transparent 2px 32px)}
+.vacant .cubby-stock{box-shadow:inset 0 2px #5537222e;background:repeating-linear-gradient(90deg,#c9a27813 0 2px,transparent 2px 32px);display:flex;align-items:flex-end;justify-content:space-around;padding:0 8% 2px}
+/* Sealed stock crates fill the rows that have not had goods delivered yet. */
+.awaiting-crate{display:block;width:min(34%,90px);height:min(62%,52px);background:linear-gradient(90deg,transparent 44%,#d9c08f 44% 56%,transparent 56%),linear-gradient(#c99a68,#b9875a);border:3px solid #7c5639;box-shadow:inset 0 3px #e3b886,inset 0 -3px #94683f,2px 2px #5d3e2a55;opacity:.82}
+.awaiting-crate:nth-child(2){height:min(48%,40px);opacity:.7}
 .receipt-till{min-height:40px;padding:0 6px;border:1px solid #b79a68;background:#ffedc7;box-shadow:1px 2px #ac9068}
 .receipt-sample{display:flex;align-items:center;gap:5px;border-top:1px dashed #bd9c71;padding:3px 0;color:#674937;font-size:.88em}
 .receipt-sample i{width:18px;height:12px;border:1px solid #967251;flex:none;image-rendering:pixelated}
@@ -429,3 +442,23 @@
 }
 
 .order-stars{display:block;color:#825917;font-size:1.35em;letter-spacing:.08em;line-height:1.1}
+
+.chapter-crown{display:flex;align-items:center;gap:4px;margin:0 0 .6em;padding:.45em .5em;background:#fbe7a8;border:2px solid #c69a3c;color:#6b4a17;font-size:.84em}
+.receipt-fixes{border-top:1px dashed #bc9575}.receipt-fixes .receipt-line p{color:#8a3a33}
+/* Keep the open lid clear for the action so it never covers goods in the box. */
+.counter-scene:not([data-stage="seal"]) .parcel-space .box-action{bottom:auto;top:3%}
+/* Short phone screens: the order slip stays inside the desk instead of covering the shelf base. */
+@media (max-height:440px){
+  [data-camera="wide"] .counter-note{align-self:end;max-height:100%}
+  [data-camera="wide"] .scoop-ticket{gap:2px;padding:4px 8px}
+  [data-camera="wide"] .scoop-ticket .slip-head{padding:0 0 2px;font-size:.84em}
+  [data-camera="wide"] .scoop-order-strip{padding:0;font-size:.88em}
+  [data-camera="wide"] .scoop-current{min-height:36px}
+  [data-camera="wide"] .scoop-current img{width:26px;height:30px}
+  [data-camera="wide"] .bead-legend-link{min-height:30px}
+  .live-beads{padding:6px;gap:4px}
+  .tray-bead{min-width:34px;min-height:34px;padding:2px}
+  [data-camera="near"] .counter-desk{grid-template-columns:27% 28% minmax(0,1fr)}
+  [data-camera="near"] .scoop-order-strip{display:none}
+  .counter-scene[data-camera="near"] .tray-bead{min-width:30px;min-height:30px}
+}

@@ -95,7 +95,8 @@
 }
 .here-flag::before {content:""; position:absolute; inset:2px 3px 4px; background:#ffe4a1; clip-path:polygon(0 0,100% 0,100% 38%,74% 38%,74% 69%,55% 69%,55% 100%,39% 100%,39% 69%,23% 69%,23% 38%,0 38%)}
 @keyframes point {50%{transform:translateY(-3px)}}
-.delivered {position:absolute; right:-1px; top:2px; padding:0 2px; background:#416450; color:#fff0be; border:1px solid #334c3e; font-size:11px}
+.delivered {position:absolute; left:50%; bottom:calc(100% - 3px); translate:-50% 0; z-index:2; padding:0 2px; background:#416450; color:#ffd76a; border:1px solid #334c3e; font-size:11px; line-height:1.15; white-space:nowrap}
+.delivered i {font-style:normal; color:#7f9a86}
 .walk {position:absolute; top:47%; width:44px; height:44px; padding:0; background:#fff0c8; color:#725246; font-size:22px}
 .walk-left {left:max(1.5%,env(safe-area-inset-left))}
 .walk-right {right:max(1.5%,env(safe-area-inset-right))}
@@ -127,3 +128,4 @@
   .chapter-sign {padding:3px 9px}
 }
 @media (prefers-reduced-motion:reduce) {.scene * {animation:none!important}}
+.map-stop[aria-pressed="true"]:has(.delivered) .here-flag {bottom:calc(50% + var(--node-size) * .51 + 15px)}

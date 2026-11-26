@@ -29,15 +29,16 @@ window.LuckyCounter = (() => {
     image.decode?.().catch(()=>{});
   }
 
+  const misfits=b=>b.opened?b.pieces.filter(g=>!C.fits(b,g)).length:0;
   function receipt(a, expanded=false) {
     if(a.mode==='scoop'){
       if(expanded)return '<div class="expanded-lines">'+a.bags.map((b,i)=>
-        button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b><em>${b.pieces.length}/${b.quantity}</em>`,
-          'note-line',i,['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':'')).join('')+'</div>';
+        button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em>${b.pieces.length}/${b.quantity}</em>`,
+          'note-line'+(misfits(b)?' has-misfit':''),i,['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':'')).join('')+'</div>';
       const b=a.bags[a.current], packed=C.pieceCount(a.bags);
       return `<div class="ticket-paper scoop-ticket"><span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?C.levelName(a.level):'#'+String(a.id).padStart(3,'0')}</small></span>
         <div class="scoop-order-strip"><span>${icon('spoon',24)}<b>${a.scoopTarget}<small> 满勺</small></b></span><span class="scoop-preference">${icon(a.theme,21)}${C.themes[a.theme].name}</span></div>
-        ${b?button('ticket-zoom',item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b><em><strong>${b.pieces.length}</strong>/${b.quantity}</em>`,'scoop-current','','aria-label="'+C.kinds[b.kind].name+'，已装'+b.pieces.length+'件，共需'+b.quantity+'件，查看配货单"'):''}
+        ${b?button('ticket-zoom',item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em><strong>${b.pieces.length}</strong>/${b.quantity}</em>`,'scoop-current'+(misfits(b)?' has-misfit':''),'','aria-label="'+C.kinds[b.kind].name+'，已装'+b.pieces.length+'件，共需'+b.quantity+'件'+(misfits(b)?'，其中拿错'+misfits(b)+'件':'')+'，查看配货单"'):''}
         <div class="scoop-ticket-foot"><span class="scoop-tally">${a.beads.length?'已装 '+packed+' / '+a.beads.length+' 件':''}</span>${button('bead-rules',icon('catalog',17)+'<span>珠子表</span>','bead-legend-link','','aria-label="查看珠子对照表"')}</div></div>`;
     }
     const busy = ['tear','gifts','seal'].includes(a.stage);
@@ -89,7 +90,7 @@ window.LuckyCounter = (() => {
   }
   function cubbies(bay,stock,detail) {
     return shelves[bay].map(({kind,variant,style})=>{
-      if(!stock.capacity[kind])return '<div class="stock-cubby vacant" aria-hidden="true"><div class="cubby-stock"></div><div class="shelf-edge"></div></div>';
+      if(!stock.capacity[kind])return '<div class="stock-cubby vacant" aria-hidden="true"><div class="cubby-stock"><i class="awaiting-crate"></i><i class="awaiting-crate"></i></div><div class="shelf-edge"></div></div>';
       const offered=!stock.gift || C.giftKinds.includes(kind);
       const slots=colors.map(color=>{
         const g={kind,variant,color}, key=keyOf(g), used=stock.used.get(key)||0;
@@ -127,12 +128,17 @@ window.LuckyCounter = (() => {
     const pieces = a.bags.flatMap((b,bag)=>b.pieces.map((g,index)=>{
       const slot=a.mode==='scoop'?starts[bag]+index:n++;
       const columns=layoutTotal>20?6:4,rows=Math.ceil(layoutTotal/columns);
-      const x=g.position?.x??(.11+(slot%columns)*(.78/(columns-1))), y=g.position?.y??((Math.floor(slot/columns)+.5)/Math.max(2,rows));
-      if(a.stage==='photo')return `<span class="parcel-item" style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${Math.max(13,48-Math.floor(layoutTotal/10)*5)}%">${item(g)}</span>`;
-      return button('return-piece',item(g),'parcel-item',bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${Math.max(13,48-Math.floor(layoutTotal/10)*5)}%" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
+      // Items shrink with the number of rows and stay inside the box walls.
+      const tall=Math.max(13,Math.min(48-Math.floor(layoutTotal/10)*5,150/Math.max(2,rows))), half=tall/200;
+      const x=g.position?.x??(.11+(slot%columns)*(.78/(columns-1)));
+      const y=Math.min(1-half,Math.max(half,g.position?.y??((Math.floor(slot/columns)+.5)/Math.max(2,rows))));
+      const wrong=b.opened!==false && !C.fits(b,g)?' misfit':'';
+      if(a.stage==='photo')return `<span class="parcel-item${wrong}" style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${tall}%">${item(g)}</span>`;
+      return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${tall}%" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
     })).join('');
     const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'':'disabled'}`)).join('');
-    return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${sealed?'':`<div class="tissue box-interior">${pieces}${bonus}</div>`}</div>`;
+    const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${String(a.id).padStart(3,'0')}</small></div>`:'';
+    return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${address}${sealed?'':`<div class="tissue box-interior">${pieces}${bonus}</div>`}</div>`;
   }
 
   function hand(a) {
@@ -145,9 +151,9 @@ window.LuckyCounter = (() => {
     }
     if(a.mode==='scoop' && ['shelf','pack'].includes(a.stage)){
       return `<div class="bead-tray live-beads" aria-label="点珠子对照取货">${a.bags.map((b,index)=>{
-        const pile=Array.from({length:Math.min(3,b.quantity)},()=>bead(b)).join('');
-        return button('station-card',`<span class="bead-pile">${pile}</span><small>×${b.quantity}</small>`,'tray-bead '+(b.pieces.length===b.quantity?'collected':'')+(index===a.current?' active':''),index,
-          `aria-label="${C.kinds[b.kind].name}，${b.pieces.length}/${b.quantity}" aria-pressed="${index===a.current}"`);
+        const wrong=misfits(b), state=wrong?'misfit':b.pieces.length===b.quantity?'collected':'';
+        return button('station-card',`<span class="bead-pile">${bead(b)}</span><span class="bead-goods">${item({...b,variant:0})}</span><small>×${b.quantity}</small>`,'tray-bead '+state+(index===a.current?' active':''),index,
+          `aria-label="${C.kinds[b.kind].name}，${b.pieces.length}/${b.quantity}${wrong?'，拿错'+wrong+'件':''}" aria-pressed="${index===a.current}"`);
       }).join('')}</div>`;
     }
     const b=a.bags[a.current], next=a.bags.findIndex(card=>!card.opened);
@@ -159,7 +165,7 @@ window.LuckyCounter = (() => {
     if(a.stage==='reveal') return button('station-unpack',`<span class="drawn-card">${item({...b,variant:b.variant??0})}<b>×${b.quantity}</b></span>${prop('props/open-'+b.wrapper+'.png','wrapper')}`,
       'hand-prop reveal-prop','','aria-label="收起图卡，去货架取货"');
     if(a.stage==='gifts') return button('photo',icon(a.theme,40)+`<b>贴封签</b><small>赠品 ${a.gifts.length}/2</small>`,'postage-sticker','','data-drag="postage" aria-label="贴封签，可拖到盒子上或轻点"');
-    if(a.stage==='seal') return `<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${String(a.id).padStart(3,'0')}</small></div>`;
+    if(a.stage==='seal') return '';
     if(next===-1)return '';
     const ready=!b?.opened || b.pieces.length===b.quantity;
     return button('station-card',prop('counter/scoop.webp')+`<b class="prop-tag">${C.count(a)?'下一袋':'舀一勺'}</b>`,'hand-prop scoop-prop'+(ready?' ready':''),next);

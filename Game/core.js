@@ -50,7 +50,14 @@
   ];
   const finishes=Object.fromEntries(['desk','cloth','rack'].map(part=>[part,finishCatalog.filter(f=>f.part===part)]));
   const basicDisplay=()=>({purchases:{},equipped:{desk:'maple',cloth:'gingham',rack:'beech'}});
-  const balance=s=>s.orders.reduce((sum,o)=>sum+o.earnings,0)-Object.values(s.display?.purchases||{}).reduce((sum,price)=>sum+price,0);
+  // Every level of a chapter shipped at three stars pays a one-time bonus, derived from the orders themselves.
+  const chapterBonus=200;
+  function perfectChapters(orders) {
+    const best=new Map();
+    for(const o of orders)if(o.level)best.set(o.level,Math.max(best.get(o.level)||0,levelStars(o.satisfaction)));
+    return chapters.map((_,c)=>Array.from({length:10},(_,i)=>c*10+i+1).every(id=>best.get(id)===3));
+  }
+  const balance=s=>s.orders.reduce((sum,o)=>sum+o.earnings,0)+perfectChapters(s.orders).filter(Boolean).length*chapterBonus-Object.values(s.display?.purchases||{}).reduce((sum,price)=>sum+price,0);
   const ownsFinish=(s,f)=>f.price===0 || Object.hasOwn(s.display?.purchases||{},f.id);
   const finishAvailable=(s,f,through=completedLevels(s))=>ownsFinish(s,f) || through>=f.after;
   function stockKinds(s) {
@@ -141,12 +148,14 @@
     const used = group.filter(g=>g.kind===goods.kind && g.color===goods.color && g.variant===goods.variant).length;
     return stockCapacity(order,goods.kind,gift) - used;
   }
+  // Three stars only for a box with nothing wrong or missing.
   function levelStars(satisfaction) {
-    if (satisfaction >= 95) return 3;
+    if (satisfaction >= 100) return 3;
     if (satisfaction >= 80) return 2;
     if (satisfaction >= 60) return 1;
     return 0;
   }
+  const fits=(card,g)=>g.kind===card.kind && g.color===card.color && (card.variant===null || g.variant===card.variant);
   function rateCards(cards) {
     const lines = cards.map(card=>{
       const points = card.pieces.reduce((sum,g)=>{
@@ -158,7 +167,9 @@
       return points/card.quantity;
     });
     const normalized=lines.map(points=>points*5/Math.max(1,cards.length));
-    const satisfaction=Math.round(normalized.reduce((sum,points)=>sum+points,0));
+    const perfect=cards.every(card=>card.pieces.length===card.quantity && card.pieces.every(g=>fits(card,g)));
+    const total=Math.round(normalized.reduce((sum,points)=>sum+points,0));
+    const satisfaction=perfect?100:Math.min(99,total);
     return {lines:normalized,satisfaction,earnings:satisfaction};
   }
   function beginScoop(next, level, theme, scoops) {
@@ -571,7 +582,7 @@
   const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,canUndo,validate,collection,score,packedItems,step,decode,
     levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,stockCapacity,remaining,giftKinds,unlockedLevel,
     deliveries,stockKinds,isStocked,finishCatalog,finishes,ownsFinish,finishAvailable,completedLevels,balance,
-    scoopsFor,scoopSize,levelName,levelStars};
+    scoopsFor,scoopSize,levelName,levelStars,fits,perfectChapters,chapterBonus};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
 })(globalThis);

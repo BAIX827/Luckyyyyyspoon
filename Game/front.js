@@ -86,7 +86,7 @@ window.LuckyFront = (() => {
       const description = status === 'done' ? '最高 '+stars+' 星' : status === 'current' ? '可接单' : '未解锁';
       const [x,y] = map.route[index];
       return button('map-select',
-        `<span class="marker-face"><b>${level.id}</b></span>${status === 'done' ? `<span class="delivered" aria-hidden="true">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>` : ''}<i class="here-flag" aria-hidden="true"></i>`,
+        `<span class="marker-face"><b>${level.id}</b></span>${status === 'done' ? `<span class="delivered" aria-hidden="true">${'★'.repeat(stars)}<i>${'★'.repeat(3-stars)}</i></span>` : ''}<i class="here-flag" aria-hidden="true"></i>`,
         'map-stop ' + status, level.id,
         `style="left:${x}%;top:${y}%" aria-pressed="${selected === level.id}" aria-label="${C.levelName(level.id)}，${description}"`);
     }).join('');
