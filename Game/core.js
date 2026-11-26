@@ -584,7 +584,7 @@
   const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,canUndo,validate,collection,score,packedItems,step,decode,
     levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,stockCapacity,remaining,giftKinds,unlockedLevel,
     deliveries,stockKinds,isStocked,finishCatalog,finishes,ownsFinish,finishAvailable,completedLevels,balance,
-    scoopsFor,scoopSize,levelName,levelStars,fits,perfectChapters,chapterBonus,freeLevels};
+    scoopsFor,levelName,levelStars,fits,perfectChapters,chapterBonus,freeLevels};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
 })(globalThis);

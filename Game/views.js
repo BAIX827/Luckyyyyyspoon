@@ -1,7 +1,6 @@
 'use strict';
 (function viewsModule() {
   const C=LuckyCore, colors=Object.keys(C.themes), drawers=['发饰','书写','纸品','随身'];
-  const wishes={pink:'想收一盒草莓粉，像刚做好的莓果牛奶。',blue:'今天想念海边，帮我配一盒海盐蓝吧。',purple:'葡萄刚熟的紫色，是我今天最想要的颜色。',yellow:'想让书桌亮一点，这次请给我柠檬黄。',green:'阳台的薄荷长新叶了，想要一盒同样的绿。',orange:'给周末带点好心情，今天想拆蜜橘橙。'};
   const asset=name=>'assets/'+name;
   const icon=(key,size=20)=>`<img class="pixel icon" alt="" width="${size}" height="${size}" src="${LuckyIcons[key]}">`;
   const sprite=(color,kind,variant,alt='')=>`<img class="pixel goods" src="${asset('items/'+color+'-'+kind+'-'+variant+'.png')}" alt="${alt}" draggable="false">`;

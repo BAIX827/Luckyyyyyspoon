@@ -8,6 +8,7 @@ window.LuckyCounter = (() => {
   const fixtures = ['velvet','holes','books','cards','files','pegs','velvet','cards','velvet','holes','files','files','holes','files','spindle','files','pegs','pegs','pegs','files','pegs','files','binder-rail','cup-grid'];
   const item = g => `<img draggable="false" alt="" class="counter-item" src="assets/items/${g.color}-${g.kind}-${g.variant}.png">`;
   const label = g => C.themes[g.color].name + C.itemName(g.color, g.kind, g.variant);
+  const num = id => String(id).padStart(3,'0');
   const cardName = b => b.variant === null ? C.kinds[b.kind].name : C.itemName(b.color, b.kind, b.variant);
   const bagIcon = b => b.opened ? item({...b, variant:b.variant ?? 0}) : icon('bag', 22);
   const prop = (file, cls='') => `<img class="physical-prop ${cls}" draggable="false" alt="" src="assets/${file}">`;
@@ -36,7 +37,7 @@ window.LuckyCounter = (() => {
         button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em>${b.pieces.length}/${b.quantity}</em>`,
           'note-line'+(misfits(b)?' has-misfit':''),i,['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':'')).join('')+'</div>';
       const b=a.bags[a.current], packed=C.pieceCount(a.bags);
-      return `<div class="ticket-paper scoop-ticket"><span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?C.levelName(a.level):'#'+String(a.id).padStart(3,'0')}</small></span>
+      return `<div class="ticket-paper scoop-ticket"><span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?C.levelName(a.level):'#'+num(a.id)}</small></span>
         <div class="scoop-order-strip"><span>${icon('spoon',24)}<b>${a.scoopTarget}<small> 满勺</small></b></span><span class="scoop-preference">${icon(a.theme,21)}${C.themes[a.theme].name}</span></div>
         ${b?button('ticket-zoom',item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em><strong>${b.pieces.length}</strong>/${b.quantity}</em>`,'scoop-current'+(misfits(b)?' has-misfit':''),'','aria-label="'+C.kinds[b.kind].name+'，已装'+b.pieces.length+'件，共需'+b.quantity+'件'+(misfits(b)?'，其中拿错'+misfits(b)+'件':'')+'，查看配货单"'):''}
         <div class="scoop-ticket-foot"><span class="scoop-tally">${a.beads.length?'已装 '+packed+' / '+a.beads.length+' 件':''}</span>${button('bead-rules',icon('catalog',17)+'<span>珠子表</span>','bead-legend-link','','aria-label="查看珠子对照表"')}</div></div>`;
@@ -60,7 +61,7 @@ window.LuckyCounter = (() => {
     const count = picked ? `<em>${b.pieces.length}/${b.quantity}</em>` : '';
     const summary = picked ? C.themes[b.color].name + ' ' + name + ' ' + b.pieces.length+'/'+b.quantity : C.themes[a.theme].name;
     const summaryButton=button('ticket-zoom',
-      `<span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?'第 '+a.level+' 关':'#'+String(a.id).padStart(3,'0')}</small></span>
+      `<span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?'第 '+a.level+' 关':'#'+num(a.id)}</small></span>
       <span class="slip-wish">${picture}<span><strong>${name}</strong></span>${count}</span>
       <span class="bag-marks" aria-hidden="true">${tally}</span>`,
       'ticket-summary', '', `aria-label="${a.customer}的配货单，${summary}，查看五袋明细" aria-haspopup="dialog"`);
@@ -140,7 +141,7 @@ window.LuckyCounter = (() => {
       return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;${size}" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
     })).join('');
     const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'':'disabled'}`)).join('');
-    const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${String(a.id).padStart(3,'0')}</small></div>`:'';
+    const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${num(a.id)}</small></div>`:'';
     return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${address}${sealed?'':`<div class="tissue box-interior">${pieces}${bonus}</div>`}</div>`;
   }
 
