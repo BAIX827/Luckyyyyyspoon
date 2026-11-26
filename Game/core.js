@@ -378,7 +378,7 @@
     const validIndex = value => Number.isInteger(value) && value >= 0 && value < 5;
     const stage = name => order && order.stage === name;
     if(action==='tutorial-skip'){
-      if(arg!=='first-order'&&!deliveries.some(d=>'goods-'+d.kind===arg))return state;
+      if(!['first-order','hold'].includes(arg)&&!deliveries.some(d=>'goods-'+d.kind===arg))return state;
       if(next.learned[arg])return state;
       next.learned[arg]=true;next.revision++;return next;
     }

@@ -106,6 +106,11 @@
       }
     }
     sound([0,2,4,5,6,8,13,14,15,17,18].includes(goods.kind)?'land-soft':'land-hard');
+    // The last piece in: the box settles with a small squash and a chord, and the check button bobs.
+    if(state.active.bags.every(b=>b.pieces.length===b.quantity)){
+      if(!reduced())root.querySelector('.parcel')?.animate?.([{scale:'1 1'},{scale:'1.05 .93'},{scale:'.98 1.03'},{scale:'1 1'}],{duration:420,easing:'steps(6,end)'});
+      sound('full',.08);
+    }
     if(misfit){
       local.streak=0;sound('miss',.06);
       const wrong=root.querySelector(`.parcel-item[data-bag="${a.current}"][data-index="${card.pieces.length}"]`);
@@ -349,6 +354,7 @@
       if(document.hidden || heldStock!==hold || el.disabled || !el.closest('.inspected') || state.active?.id!==hold.order || state.active.current!==hold.bag || local.page!=='play' || local.modals.length)return;
       ignoreStockClick=true;
       const goods=goodsVal(hold.value);
+      if(!state.learned.hold)await change('tutorial-skip','hold',false);
       if(await takeFromRack(goods)){
         if(heldStock===hold)hold.timer=setTimeout(()=>queue(repeat),75);
       }

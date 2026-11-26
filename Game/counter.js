@@ -153,7 +153,9 @@ window.LuckyCounter = (() => {
         <div class="bead-tray waiting-tray" data-pour-tray aria-label="已倒出的珠子">${a.beads.map(bead).join('')}</div></div>`;
     }
     if(a.mode==='scoop' && ['shelf','pack'].includes(a.stage)){
-      return `<div class="bead-tray live-beads" aria-label="点珠子对照取货">${a.bags.map((b,index)=>{
+      // Unfinished categories stay at the front so a long order never hides what is left below the fold.
+      const order=a.bags.map((b,index)=>index).sort((i,j)=>Number(a.bags[i].pieces.length>=a.bags[i].quantity && !misfits(a.bags[i]))-Number(a.bags[j].pieces.length>=a.bags[j].quantity && !misfits(a.bags[j]))||i-j);
+      return `<div class="bead-tray live-beads" aria-label="点珠子对照取货">${order.map(index=>{const b=a.bags[index];
         const wrong=misfits(b), state=wrong?'misfit':b.pieces.length===b.quantity?'collected':'';
         return button('station-card',`<span class="bead-pile">${bead(b)}</span><span class="bead-goods">${item({...b,variant:0})}</span><small>×${b.quantity}</small>`,'tray-bead '+state+(index===a.current?' active':''),index,
           `aria-label="${C.kinds[b.kind].name}，${b.pieces.length}/${b.quantity}${wrong?'，拿错'+wrong+'件':''}" aria-pressed="${index===a.current}"`);
@@ -178,7 +180,8 @@ window.LuckyCounter = (() => {
     const opened=C.count(a), n=C.pieceCount(a.bags);
     const action = a.stage==='pack' ? button('wrap','挑赠品','box-action') :
       a.stage==='seal' ? button('seal','寄出','box-action') :
-      opened===(a.mode==='scoop'?a.bags.length:5) && n && ['shelf','reveal','tray'].includes(a.stage) ? button('station-pack','核对装箱','box-action') : '';
+      opened===(a.mode==='scoop'?a.bags.length:5) && n && ['shelf','reveal','tray'].includes(a.stage) ?
+        button('station-pack','核对装箱','box-action'+(a.bags.every(b=>b.pieces.length===b.quantity)?' is-ready':'')) : '';
     const extra = a.stage==='gifts' ? button('review','返回装盒','utility-label') : a.stage==='seal' ? button('rearrange','拆回','utility-label') : '';
     const stamp = a.stage==='seal' && a.level && a.level%10===0 ? (a.stamp?`<span class="stamped">${icon(a.theme,18)} 已盖章</span>`:button('stamp','盖纪念章','utility-label')) : '';
     return {tools:`${button('station-close-rack',icon('back',21),'pixel-tool rack-back','','aria-label="返回整面货架"')}${button('pause',icon('pause',20),'pixel-tool','','aria-label="暂停"')}${C.canUndo(a)?button('undo','↶','pixel-tool','','aria-label="撤回" title="撤回"'):''}${extra}${stamp}`, note:receipt(a), hand:hand(a), box:parcel(a)+action};

@@ -462,3 +462,11 @@
   [data-camera="near"] .scoop-order-strip{display:none}
   .counter-scene[data-camera="near"] .tray-bead{min-width:30px;min-height:30px}
 }
+
+/* Press-and-hold lesson: the hand stays down while the ripples repeat. */
+[data-demo="hold"] .gesture-demo{animation:guide-hold 2.4s ease-in-out infinite}
+[data-demo="hold"] .tap-ripple{animation:guide-ripple .6s ease-out infinite}
+@keyframes guide-hold{0%,100%{transform:translate(4px,6px)}14%,78%{transform:translate(0,0)}}
+.box-action.is-ready{animation:ready-bob 1.1s steps(2,end) infinite}
+@keyframes ready-bob{50%{translate:0 -3px}}
+@media (prefers-reduced-motion:reduce){.box-action.is-ready{animation:none}}

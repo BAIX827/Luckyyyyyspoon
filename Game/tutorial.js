@@ -55,8 +55,13 @@ window.LuckyTutorial = (() => {
     const scene = game.querySelector('.counter-scene');
     if (!scene || !a || a.mode!=='scoop' || game.querySelector('.veil')) { clearTutorial(); return; }
     const delivery = C.deliveries.find(d => d.after === a.level - 1);
-    const lesson = a.level === 1 ? 'first-order' : delivery ? 'goods-' + delivery.kind : null;
-    if (!lesson || progress.learned[lesson]) { clearTutorial(); return; }
+    let lesson = a.level === 1 ? 'first-order' : delivery ? 'goods-' + delivery.kind : null;
+    if (lesson && progress.learned[lesson]) lesson = null;
+    // Once the basics are learned, the first category that needs four or more pieces teaches press-and-hold.
+    const open = a.bags?.[a.current];
+    if (!lesson && !progress.learned.hold && a.mode === 'scoop' && a.stage === 'shelf' && open &&
+        open.quantity - open.pieces.length >= 4 && open.pieces.every(g => C.fits(open,g))) lesson = 'hold';
+    if (!lesson) { clearTutorial(); return; }
     if (tutorialOrder !== a.id) { tutorialOrder = a.id; firstBag = null; }
     const card = a.bags[a.current];
     if (card && firstBag === null) firstBag = a.current;
@@ -65,7 +70,10 @@ window.LuckyTutorial = (() => {
     let hint = null;
     if (a.stage === 'scoop') hint = instruction('scoop','.scoop-prop','舀一勺');
     else if (a.stage === 'drawn') hint = instruction('pour','.pour-prop',delivery ? C.kinds[delivery.kind].name+'到货 · 倒进盘里' : '倒进盘里');
-    else if (lesson === 'first-order') {
+    else if (lesson === 'hold') {
+      if (scene.dataset.camera === 'near' && find('.shelf-bay.inspected'))
+        hint = instruction('hold',`.shelf-bay.inspected [data-act="add-piece"][data-val="${card.color}|${card.kind}|${card.variant ?? 0}"]`,'按住不放，连续取货');
+    } else if (lesson === 'first-order') {
       if (a.current === firstBag && a.stage === 'shelf' && card) {
         const wrong = card.pieces.findIndex(g => !C.fits(card,g));
         if (wrong >= 0) hint = instruction('return',`[data-act="return-piece"][data-val="${a.current}|${wrong}"]`,'点一下，退回');
@@ -91,7 +99,7 @@ window.LuckyTutorial = (() => {
     clearTutorial();
     stepKey = key;
     stepTarget = hint.target;
-    gestureKind = ['pick','pour'].includes(hint.key) ? 'drag' : 'tap';
+    gestureKind = ['pick','pour'].includes(hint.key) ? 'drag' : hint.key === 'hold' ? 'hold' : 'tap';
     tutorialLayer = document.createElement('div');
     tutorialLayer.className = 'in-game-tutorial';
     tutorialLayer.dataset.demo = gestureKind;
