@@ -125,16 +125,19 @@ window.LuckyCounter = (() => {
     const layoutTotal=a.mode==='scoop'?a.bags.reduce((sum,b)=>sum+b.quantity,0):total;
     let n = 0, reserved = 0;
     const starts=a.bags.map(b=>{const first=reserved;reserved+=b.quantity;return first;});
+    // A grid shaped like the tissue bed (about 2.3:1), filled row by row in order-card order,
+    // so a large order reads as neat rows of goods instead of a few tall streaks.
+    const columns=Math.max(4,Math.min(14,Math.ceil(Math.sqrt(layoutTotal*1.9))));
+    const rows=Math.max(2,Math.ceil(layoutTotal/columns));
+    const wide=Math.min(25,128/columns), tall=Math.max(12,Math.min(48,135/rows)), half=tall/200;
+    const size=`width:${wide}%;height:${tall}%`;
     const pieces = a.bags.flatMap((b,bag)=>b.pieces.map((g,index)=>{
       const slot=a.mode==='scoop'?starts[bag]+index:n++;
-      const columns=layoutTotal>20?6:4,rows=Math.ceil(layoutTotal/columns);
-      // Items shrink with the number of rows and stay inside the box walls.
-      const tall=Math.max(13,Math.min(48-Math.floor(layoutTotal/10)*5,150/Math.max(2,rows))), half=tall/200;
-      const x=g.position?.x??(.11+(slot%columns)*(.78/(columns-1)));
-      const y=Math.min(1-half,Math.max(half,g.position?.y??((Math.floor(slot/columns)+.5)/Math.max(2,rows))));
+      const x=g.position?.x??(.07+((slot%columns)+.5)*(.86/columns));
+      const y=Math.min(1-half,Math.max(half,g.position?.y??((Math.floor(slot/columns)+.5)/rows)));
       const wrong=b.opened!==false && !C.fits(b,g)?' misfit':'';
-      if(a.stage==='photo')return `<span class="parcel-item${wrong}" style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${tall}%">${item(g)}</span>`;
-      return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${tall}%" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
+      if(a.stage==='photo')return `<span class="parcel-item${wrong}" style="left:${x*100}%;top:${y*100}%;${size}">${item(g)}</span>`;
+      return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;${size}" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
     })).join('');
     const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'':'disabled'}`)).join('');
     const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${String(a.id).padStart(3,'0')}</small></div>`:'';
