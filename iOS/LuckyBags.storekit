@@ -1,0 +1,44 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "7F3A1C52",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "9.9",
+      "familyShareable" : false,
+      "internalID" : "6E1B9D40",
+      "localizations" : [
+        {
+          "description" : "解锁第二到第十章的 90 关",
+          "displayName" : "幸运盲袋完整版",
+          "locale" : "zh_Hans"
+        }
+      ],
+      "productID" : "com.luckybags.pixelshop.fullgame",
+      "referenceName" : "Full Game",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_locale" : "zh_Hans",
+    "_storefront" : "CHN"
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

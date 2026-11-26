@@ -52,6 +52,8 @@
   const basicDisplay=()=>({purchases:{},equipped:{desk:'maple',cloth:'gingham',rack:'beech'}});
   // Every level of a chapter shipped at three stars pays a one-time bonus, derived from the orders themselves.
   const chapterBonus=200;
+  // Chapter one is the free trial; later levels need the one-time full-game purchase.
+  const freeLevels=10;
   function perfectChapters(orders) {
     const best=new Map();
     for(const o of orders)if(o.level)best.set(o.level,Math.max(best.get(o.level)||0,levelStars(o.satisfaction)));
@@ -582,7 +584,7 @@
   const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,canUndo,validate,collection,score,packedItems,step,decode,
     levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,stockCapacity,remaining,giftKinds,unlockedLevel,
     deliveries,stockKinds,isStocked,finishCatalog,finishes,ownsFinish,finishAvailable,completedLevels,balance,
-    scoopsFor,scoopSize,levelName,levelStars,fits,perfectChapters,chapterBonus};
+    scoopsFor,scoopSize,levelName,levelStars,fits,perfectChapters,chapterBonus,freeLevels};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
 })(globalThis);

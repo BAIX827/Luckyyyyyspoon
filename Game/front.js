@@ -59,8 +59,11 @@ window.LuckyFront = (() => {
     const locked = id > C.unlockedLevel(state);
     const done = state.orders.some(order => order.level === id);
     let control;
+    const paid = window.LuckyPlatform?.fullGame?.() !== false;
     if (locked) {
       control = `<span class="locked-note">${C.levelName(id - 1)}后解锁</span>`;
+    } else if (id > C.freeLevels && !paid && state.active?.level !== id) {
+      control = button('unlock-full', '解锁' + arrow, 'take-ticket', id);
     } else if (state.active) {
       control = button('resume', (state.active.level === id ? '继续打包' : '回柜台') + arrow, 'take-ticket');
     } else {

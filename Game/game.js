@@ -122,6 +122,11 @@
     }
     return true;
   }
+  const needsUnlock=n=>n>C.freeLevels && !P.fullGame();
+  function openUnlock(){
+    modal('unlock');
+    if(!local.price)P.price().then(price=>{if(price){local.price=price;if(local.modals.at(-1)==='unlock')render(true);}});
+  }
   function startIntro(replay=false){
     local.replay=replay;go('intro');sound('bell');
     clearTimeout(introTimer);introTimer=setTimeout(()=>queue(()=>finishIntro()),3500);
@@ -181,8 +186,27 @@
       case 'level-ticket':
         if(a){if(a.level===n){go('play');}return;}
         if(!C.levels[n-1] || n>C.unlockedLevel(state))return;
+        if(needsUnlock(n)){openUnlock();return;}
         local.level=n;local.request=C.levels[n-1].theme;go('level-request',true);sound('paper');return;
+      case 'unlock-full':openUnlock();return;
+      case 'purchase':case 'restore':{
+        if(local.storeBusy)return;
+        local.storeBusy=true;render(true);
+        const result=await (name==='purchase'?P.purchase():P.restore());
+        local.storeBusy=false;
+        if(result==='owned'){
+          if(local.modals.at(-1)==='unlock')local.modals.pop();
+          render(true);sound('seal');note(name==='purchase'?'完整版已解锁，九十关都开放了。':'已恢复完整版。');
+        }else{
+          render(true);
+          if(result==='pending')note('购买正在等待确认，确认后会自动解锁。');
+          else if(name==='restore')note('这个 Apple 账户还没有完整版的购买记录。');
+          else if(result!=='cancelled')note('暂时连不上 App Store，请稍后再试。');
+        }
+        return;
+      }
       case 'accept-level':
+        if(needsUnlock(n)){openUnlock();return;}
         if(await change('start-scoop-level',n,false)){resetOrderTools();go('play');sound('bell');}return;
       case 'scoop-count':
         if([1,2,3].includes(n)){local.scoops=n;render(true);}return;
@@ -477,6 +501,8 @@
   window.addEventListener('resize',()=>LuckyFront.resize(root,local));
   media.addEventListener?.('change',()=>{if(state)root.classList.toggle('reduced',reduced());});
   async function boot(){
+    window.addEventListener('lucky-store',()=>P.refreshStore().then(()=>{if(P.fullGame()&&local.modals.at(-1)==='unlock')local.modals.pop();if(state)render(true);}));
+    await P.refreshStore();
     try {state=await P.read();if(state.seenIntro)go('home');else startIntro();if(P.didRecover())note('已恢复上一次保存的进度。');}
     catch(error){const reason=error.message==='invalid-save'?'存档内容损坏，当前进度和备份均已保留。':'本机存储暂时无法访问，请稍后重试。';root.innerHTML='<section class="screen failure"><h1>暂时读不到存档</h1><p>'+reason+'</p><button class="btn primary" id="retry">重新读取</button></section>';root.querySelector('#retry').onclick=boot;}
   }

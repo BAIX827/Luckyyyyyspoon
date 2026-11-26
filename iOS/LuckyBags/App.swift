@@ -1,5 +1,74 @@
+import StoreKit
 import UIKit
 import WebKit
+
+/// The one-time purchase that opens chapters two to ten. Chapter one is free.
+@MainActor
+final class FullGameStore {
+    static let productID = "com.luckybags.pixelshop.fullgame"
+    var onChange: (() -> Void)?
+    private var updates: Task<Void, Never>?
+    private var product: Product?
+
+    init() {
+        // Purchases approved later (Ask to Buy, pending payments) and refunds arrive here.
+        updates = Task { [weak self] in
+            for await result in Transaction.updates {
+                guard case .verified(let transaction) = result else { continue }
+                await transaction.finish()
+                if transaction.productID == Self.productID { self?.onChange?() }
+            }
+        }
+    }
+
+    deinit { updates?.cancel() }
+
+    func owned() async -> Bool {
+        for await result in Transaction.currentEntitlements {
+            if case .verified(let transaction) = result, transaction.productID == Self.productID,
+               transaction.revocationDate == nil {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func loadProduct() async throws -> Product? {
+        if let product { return product }
+        product = try await Product.products(for: [Self.productID]).first
+        return product
+    }
+
+    func price() async -> String? {
+        try? await loadProduct()?.displayPrice
+    }
+
+    func purchase() async -> String {
+        do {
+            guard let product = try await loadProduct() else { return "unavailable" }
+            switch try await product.purchase() {
+            case .success(.verified(let transaction)):
+                await transaction.finish()
+                return "owned"
+            case .success(.unverified):
+                return "failed"
+            case .userCancelled:
+                return "cancelled"
+            case .pending:
+                return "pending"
+            @unknown default:
+                return "failed"
+            }
+        } catch {
+            return "failed"
+        }
+    }
+
+    func restore() async -> String {
+        do { try await AppStore.sync() } catch { return "failed" }
+        return await owned() ? "owned" : "none"
+    }
+}
 
 @main
 final class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -28,6 +97,7 @@ final class GameScene: UIResponder, UIWindowSceneDelegate {
 /// Each message runs on the main actor. The revision check and atomic file
 /// replacement form one transaction, including the order and its earnings.
 final class StoreBridge: NSObject, WKScriptMessageHandlerWithReply {
+    let fullGame = FullGameStore()
     private func saveURL(_ slot: String = "current") throws -> URL {
         let base = try FileManager.default.url(for: .applicationSupportDirectory,
                                                 in: .userDomainMask, appropriateFor: nil, create: true)
@@ -60,6 +130,20 @@ final class StoreBridge: NSObject, WKScriptMessageHandlerWithReply {
         guard message.frameInfo.isMainFrame, message.frameInfo.request.url?.isFileURL == true,
               let body = message.body as? [String: Any], let operation = body["op"] as? String else {
             replyHandler(nil, "Invalid request")
+            return
+        }
+        if operation.hasPrefix("store-") || operation == "purchase" || operation == "restore" {
+            Task { @MainActor in
+                switch operation {
+                case "store-status": replyHandler(await fullGame.owned() ? "owned" : "none", nil)
+                case "store-price":
+                    let price = await fullGame.price()
+                    replyHandler(price.map { $0 as Any } ?? NSNull(), nil)
+                case "purchase": replyHandler(await fullGame.purchase(), nil)
+                case "restore": replyHandler(await fullGame.restore(), nil)
+                default: replyHandler(nil, "Unknown operation")
+                }
+            }
             return
         }
         do {
@@ -136,6 +220,9 @@ final class GameController: UIViewController, WKNavigationDelegate {
         web.scrollView.bounces = false
         web.navigationDelegate = self
         view.addSubview(web)
+        bridge.fullGame.onChange = { [weak web] in
+            web?.evaluateJavaScript("dispatchEvent(new Event('lucky-store'))")
+        }
         loadGame()
     }
 

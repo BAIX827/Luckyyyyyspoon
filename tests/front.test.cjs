@@ -6,8 +6,9 @@ const vm = require('node:vm');
 const crypto = require('node:crypto');
 const C = require('../Game/core.js');
 
-function front() {
+function front(paid) {
   const platform = {read:async () => C.initial(), write:async () => {}};
+  if (paid !== undefined) platform.fullGame = () => paid;
   const window = {LuckyPlatform:platform};
   const context = {
     window, LuckyCore:C,
@@ -90,4 +91,17 @@ test('level stars use inclusive thresholds and the map keeps the best replay', (
   const map = front().book(state,{chapter:0,selectedLevel:1});
   assert.ok(map.includes(C.levelName(1)+'，最高 3 星'));
   assert.ok(map.includes(C.levelName(2)+'，最高 0 星'));
+});
+
+test('chapter one is free; level 11 asks for the full game until it is bought', () => {
+  const orders = Array.from({length:10},(_,i)=>({level:i+1,satisfaction:100,earnings:100}));
+  const state = {...C.initial(), orders};
+  const trial = front(false).book(state,{chapter:1,selectedLevel:11});
+  assert.ok(trial.includes('data-act="unlock-full"'));
+  assert.ok(!trial.includes('data-act="accept-level" data-val="11"'));
+  const firstChapter = front(false).book(state,{chapter:0,selectedLevel:10});
+  assert.ok(firstChapter.includes('data-act="accept-level" data-val="10"'));
+  const bought = front(true).book(state,{chapter:1,selectedLevel:11});
+  assert.ok(bought.includes('data-act="accept-level" data-val="11"'));
+  assert.ok(!bought.includes('unlock-full'));
 });

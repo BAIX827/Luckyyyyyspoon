@@ -59,4 +59,8 @@
 - [iPad 尺寸游戏画面](设计文档/横屏工作台_iPad尺寸.png) · [水杯架](设计文档/分格水杯架_iPad尺寸.png) · [加赠长尾夹](设计文档/封箱前加赠长尾夹_iPad尺寸.png)
 - [柜台音乐](设计文档/柜台音乐_v0.3.wav) · [带舀珠、撕袋、取货和封箱的混音试听](设计文档/横屏打包试听_v0.3.wav)
 
-当前可玩版开放完整百关、离线存档和随心接单。正式版的收费方向是前十单免费试玩、一次性 ¥9.9 解锁。StoreKit 购买、恢复购买、真机验证与 App Store 提交属于后续发行工作。
+第一章十关免费试玩，随心接单也免费。接第十一关起弹出「解锁完整版」，一次购买开放第二到第十章，可在同一 Apple 账户的设备上恢复购买。
+
+- **iOS 内购**　非消耗型商品，产品 ID `com.luckybags.pixelshop.fullgame`，由 [App.swift](iOS/LuckyBags/App.swift) 里的 StoreKit 2 处理购买、恢复与延迟批准。需要先在 App Store Connect 为该 App 建好同 ID 的 App 内购买项目并选定价格。
+- **本地测试**　Xcode 运行 `LuckyBags` 方案时自动加载 [LuckyBags.storekit](iOS/LuckyBags.storekit)，可在模拟器里走完购买、取消与恢复。
+- **网页版**　没有 App Store，点解锁直接在本机记一个测试标记，只供开发试玩。

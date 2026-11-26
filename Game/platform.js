@@ -68,6 +68,26 @@ window.LuckyPlatform = (() => {
     await transaction(body);
     savedOrders=orders;archiveSlot=slot;
   }
+  // Full-game purchase. In the iOS app StoreKit decides; the web build keeps a local test flag.
+  const fullKey=key+'.full-game';
+  let fullGame=false;
+  async function refreshStore(){
+    try{
+      fullGame=bridge ? (await bridge.postMessage({op:'store-status'}))==='owned' : localStorage.getItem(fullKey)==='1';
+    }catch{}
+    return fullGame;
+  }
+  async function price(){
+    if(!bridge)return '';
+    try{return (await bridge.postMessage({op:'store-price'}))||'';}catch{return '';}
+  }
+  async function storeAction(op){
+    if(!bridge){localStorage.setItem(fullKey,'1');fullGame=true;return 'owned';}
+    let result;
+    try{result=await bridge.postMessage({op});}catch{return 'failed';}
+    if(result==='owned')fullGame=true;
+    return result;
+  }
   function didRecover(){const result=recovered;recovered=false;return result;}
   function syncMusic(on) {
     musicWanted=on;
@@ -88,5 +108,6 @@ window.LuckyPlatform = (() => {
       else navigator.vibrate?.(14);
     }
   }
-  return {read,write,didRecover,unlock,play,syncMusic,key};
+  return {read,write,didRecover,unlock,play,syncMusic,key,refreshStore,price,
+    purchase:()=>storeAction('purchase'),restore:()=>storeAction('restore'),fullGame:()=>fullGame};
 })();
