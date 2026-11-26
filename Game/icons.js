@@ -17,6 +17,7 @@
     star:['.....y......','....yyy.....','....yyy.....','.yyyyyyyyy..','..yyyyyyy...','...yyyyy....','...yy.yy....','..yy...yy...'],
     shell:['....ddd.....','..ddcccdd...','.dcccccccd..','dccccwccccd.','dccwcwcwccd.','dcccwwwcccd.','.dcccccccd..','..dddccdd...','....ddd.....']
   };
+  shapes.spoon=['.........dd.','........dwd.','.......dwd..','......dwd...','...ddddd....','..dwwwddd...','.dwpywpwd...','.dpywypwd...','.dwypwpwd...','..dwwwdd....','...dddd.....'];
   const inks={d:'#452335',g:'#4e774d',r:'#db4257',p:'#f782ac',y:'#ffd47c',w:'#fff5db',c:'#82c8d1',o:'#ec8944'};
   const icons={};
   for(const [key,rows] of Object.entries(shapes)){

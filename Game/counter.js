@@ -11,6 +11,13 @@ window.LuckyCounter = (() => {
   const cardName = b => b.variant === null ? C.kinds[b.kind].name : C.itemName(b.color, b.kind, b.variant);
   const bagIcon = b => b.opened ? item({...b, variant:b.variant ?? 0}) : icon('bag', 22);
   const prop = (file, cls='') => `<img class="physical-prop ${cls}" draggable="false" alt="" src="assets/${file}">`;
+  const bead = g => `<span class="lucky-bead" style="--bead:${C.themes[colors[g.kind%colors.length]].swatch}">${item({...g,variant:0})}</span>`;
+  function spoonful(beads) {
+    return beads.map((g,i)=>{
+      const radius=Math.sqrt((i+.5)/beads.length),angle=i*2.4;
+      return `<span class="spoon-token" style="left:${50+radius*37*Math.cos(angle)}%;top:${49+radius*33*Math.sin(angle)}%;rotate:${(i%5-2)*9}deg">${bead(g)}</span>`;
+    }).join('');
+  }
   let previewRequested=false;
   function prepareOverview() {
     if(previewRequested)return;
@@ -23,6 +30,16 @@ window.LuckyCounter = (() => {
   }
 
   function receipt(a, expanded=false) {
+    if(a.mode==='scoop'){
+      if(expanded)return '<div class="expanded-lines">'+a.bags.map((b,i)=>
+        button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b><em>${b.pieces.length}/${b.quantity}</em>`,
+          'note-line',i,['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':'')).join('')+'</div>';
+      const b=a.bags[a.current], packed=C.pieceCount(a.bags);
+      return `<div class="ticket-paper scoop-ticket"><span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?C.levelName(a.level):'#'+String(a.id).padStart(3,'0')}</small></span>
+        <div class="scoop-order-strip"><span>${icon('spoon',24)}<b>${a.scoopTarget}<small> 满勺</small></b></span><span class="scoop-preference">${icon(a.theme,21)}${C.themes[a.theme].name}</span></div>
+        ${b?button('ticket-zoom',item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b><em><strong>${b.pieces.length}</strong>/${b.quantity}</em>`,'scoop-current','','aria-label="'+C.kinds[b.kind].name+'，已装'+b.pieces.length+'件，共需'+b.quantity+'件，查看配货单"'):''}
+        <div class="scoop-ticket-foot"><span class="scoop-tally">${a.beads.length?'已装 '+packed+' / '+a.beads.length+' 件':''}</span>${button('bead-rules',icon('catalog',17)+'<span>珠子表</span>','bead-legend-link','','aria-label="查看珠子对照表"')}</div></div>`;
+    }
     const busy = ['tear','gifts','seal'].includes(a.stage);
     function cardButton(b,i,compact) {
       const description = b.opened ? cardName(b) : '第 ' + (i+1) + ' 袋';
@@ -104,18 +121,35 @@ window.LuckyCounter = (() => {
 
   function parcel(a) {
     const total = C.pieceCount(a.bags), sealed = a.stage==='seal';
-    let n = 0;
+    const layoutTotal=a.mode==='scoop'?a.bags.reduce((sum,b)=>sum+b.quantity,0):total;
+    let n = 0, reserved = 0;
+    const starts=a.bags.map(b=>{const first=reserved;reserved+=b.quantity;return first;});
     const pieces = a.bags.flatMap((b,bag)=>b.pieces.map((g,index)=>{
-      const slot=n++, rows=Math.ceil(total/4);
-      const x=g.position?.x??(.15+(slot%4)*.23), y=g.position?.y??((Math.floor(slot/4)+.5)/Math.max(2,rows));
-      if(a.stage==='photo')return `<span class="parcel-item" style="left:${x*100}%;top:${y*100}%">${item(g)}</span>`;
-      return button('return-piece',item(g),'parcel-item',bag+'|'+index,`style="left:${x*100}%;top:${y*100}%" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
+      const slot=a.mode==='scoop'?starts[bag]+index:n++;
+      const columns=layoutTotal>20?6:4,rows=Math.ceil(layoutTotal/columns);
+      const x=g.position?.x??(.11+(slot%columns)*(.78/(columns-1))), y=g.position?.y??((Math.floor(slot/columns)+.5)/Math.max(2,rows));
+      if(a.stage==='photo')return `<span class="parcel-item" style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${Math.max(13,48-Math.floor(layoutTotal/10)*5)}%">${item(g)}</span>`;
+      return button('return-piece',item(g),'parcel-item',bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;width:${layoutTotal>20?19:25}%;height:${Math.max(13,48-Math.floor(layoutTotal/10)*5)}%" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
     })).join('');
     const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'':'disabled'}`)).join('');
     return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${sealed?'':`<div class="tissue box-interior">${pieces}${bonus}</div>`}</div>`;
   }
 
   function hand(a) {
+    if(a.mode==='scoop' && ['scoop','drawn'].includes(a.stage)){
+      const loaded=a.stage==='drawn';
+      return `<div class="scoop-station">${loaded?
+        button('pour',`<span class="loaded-spoon"><span class="spoon-bowl">${spoonful(a.pendingBeads)}</span><i class="spoon-handle"></i></span><b class="prop-tag">倒进盘里</b>`,'hand-prop pour-prop','','data-drag="scoop-pour" aria-label="把勺子拖到盘子里，也可轻点倒出"'):
+        button('scoop',prop('counter/bead-pool.webp')+`<b class="prop-tag">舀第 ${a.scoopsTaken+1} 勺</b>`,'hand-prop scoop-prop ready')}
+        <div class="bead-tray waiting-tray" data-pour-tray aria-label="已倒出的珠子">${a.beads.map(bead).join('')}</div></div>`;
+    }
+    if(a.mode==='scoop' && ['shelf','pack'].includes(a.stage)){
+      return `<div class="bead-tray live-beads" aria-label="点珠子对照取货">${a.bags.map((b,index)=>{
+        const pile=Array.from({length:Math.min(3,b.quantity)},()=>bead(b)).join('');
+        return button('station-card',`<span class="bead-pile">${pile}</span><small>×${b.quantity}</small>`,'tray-bead '+(b.pieces.length===b.quantity?'collected':'')+(index===a.current?' active':''),index,
+          `aria-label="${C.kinds[b.kind].name}，${b.pieces.length}/${b.quantity}" aria-pressed="${index===a.current}"`);
+      }).join('')}</div>`;
+    }
     const b=a.bags[a.current], next=a.bags.findIndex(card=>!card.opened);
     if(a.stage==='tear') {
       const bag=prop('props/bag-'+b.wrapper+'.png');
@@ -135,7 +169,7 @@ window.LuckyCounter = (() => {
     const opened=C.count(a), n=C.pieceCount(a.bags);
     const action = a.stage==='pack' ? button('wrap','挑赠品','box-action') :
       a.stage==='seal' ? button('seal','寄出','box-action') :
-      opened===5 && n && ['shelf','reveal','tray'].includes(a.stage) ? button('station-pack','核对装箱','box-action') : '';
+      opened===(a.mode==='scoop'?a.bags.length:5) && n && ['shelf','reveal','tray'].includes(a.stage) ? button('station-pack','核对装箱','box-action') : '';
     const extra = a.stage==='gifts' ? button('review','返回装盒','utility-label') : a.stage==='seal' ? button('rearrange','拆回','utility-label') : '';
     const stamp = a.stage==='seal' && a.level && a.level%10===0 ? (a.stamp?`<span class="stamped">${icon(a.theme,18)} 已盖章</span>`:button('stamp','盖纪念章','utility-label')) : '';
     return {tools:`${button('station-close-rack',icon('back',21),'pixel-tool rack-back','','aria-label="返回整面货架"')}${button('pause',icon('pause',20),'pixel-tool','','aria-label="暂停"')}${C.canUndo(a)?button('undo','↶','pixel-tool','','aria-label="撤回" title="撤回"'):''}${extra}${stamp}`, note:receipt(a), hand:hand(a), box:parcel(a)+action};
@@ -143,7 +177,7 @@ window.LuckyCounter = (() => {
   function render(s,l) {
     const a=s.active, zoom=a.stage==='seal'?null:l.zoomBay;
     const parts=deskParts(a);
-    return `<section class="screen counter-scene" ${finishAttrs(s.display.equipped)} data-stage="${a.stage}" data-camera="${zoom?'near':'wide'}" aria-label="打包柜台">
+    return `<section class="screen counter-scene" ${finishAttrs(s.display.equipped)} data-mode="${a.mode||'bags'}" data-stage="${a.stage}" data-camera="${zoom?'near':'wide'}" aria-label="打包柜台">
       ${stockroom(a)}<div class="table-surface" aria-hidden="true"></div><header class="counter-tools">${parts.tools}</header>
       <div class="counter-desk"><aside class="counter-note">${parts.note}</aside><div class="hand-space">${parts.hand}</div><div class="parcel-space">${parts.box}</div></div>
       </section>`;
@@ -254,7 +288,64 @@ window.LuckyCounter = (() => {
     if(zoom)update(a,zoom,true);
     return update;
   }
-  const photo = o => parcel({bags:o.cards,gifts:o.gifts,stage:'photo'});
+  const photo = o => parcel({mode:o.mode,bags:o.cards,gifts:o.gifts,stage:'photo'});
+  async function scoopMotion(scene,reduceMotion) {
+    const pool=scene?.querySelector('.scoop-prop .physical-prop');
+    if(!pool||reduceMotion||!pool.animate)return;
+    scene.inert=true;scene.dataset.transferring='scoop';
+    try{
+      await pool.animate([
+        {transform:'none'},
+        {transform:'translateY(7px) rotate(-4deg) scale(.97)',offset:.45},
+        {transform:'translateY(-4px) rotate(2deg)'},
+      ],{duration:280,easing:'ease-in-out'}).finished;
+    }catch{}finally{scene.inert=false;delete scene.dataset.transferring;}
+  }
+  async function pourMotion(scene,reduceMotion,dropRect,onBeads) {
+    const spoon=scene?.querySelector('.loaded-spoon'),tray=scene?.querySelector('[data-pour-tray]');
+    if(!spoon||!tray||reduceMotion||!spoon.animate){onBeads();return;}
+    const animations=[],flights=[];
+    scene.inert=true;scene.dataset.transferring='pour';spoon.style.animation='none';
+    try{
+      const origin=spoon.getBoundingClientRect(),bowl=spoon.querySelector('.spoon-bowl').getBoundingClientRect(),landing=tray.getBoundingClientRect();
+      const fromX=dropRect?dropRect.left-origin.left:0,fromY=dropRect?dropRect.top-origin.top:0;
+      const dx=landing.left+landing.width*.54-(bowl.left+bowl.width*.5);
+      const dy=landing.top-12-bowl.bottom;
+      const tilt=spoon.animate([
+        {transform:`translate(${fromX}px,${fromY}px) rotate(0deg)`},
+        {transform:`translate(${dx}px,${dy}px) rotate(32deg)`}
+      ],{duration:300,easing:'cubic-bezier(.32,0,.3,1)',fill:'forwards'});
+      animations.push(tilt);await tilt.finished;
+      const tokens=[...spoon.querySelectorAll('.spoon-token')];
+      const fall=tokens.map((token,i)=>{
+        const r=token.getBoundingClientRect(),size=Math.max(12,Math.min(r.width,r.height));
+        const flight=document.createElement('span');
+        flight.className='bead-flight';flight.setAttribute('aria-hidden','true');
+        flight.innerHTML=token.innerHTML;
+        Object.assign(flight.style,{left:r.left+'px',top:r.top+'px',width:size+'px',height:size+'px',opacity:0});
+        document.body.append(flight);flights.push(flight);
+        const tx=landing.left+8+((i*47)%101)/101*Math.max(0,landing.width-size-16)-r.left;
+        const ty=landing.top+8+((i*31)%97)/97*Math.max(0,landing.height-size-16)-r.top;
+        const spin=(i%7-3)*21,delay=i*12,duration=480+(i%4)*25;
+        if(i%3===0)onBeads(i/3,(delay+duration*.73)/1000);
+        const empty=token.animate([{opacity:1},{opacity:0}],{duration:1,delay,fill:'forwards'});
+        const movement=flight.animate([
+          {transform:'translate(0,0) rotate(0deg)',opacity:1},
+          {transform:`translate(${tx*.5}px,${Math.min(-8,ty*.25-15)}px) rotate(${spin*.4}deg)`,opacity:1,offset:.32},
+          {transform:`translate(${tx}px,${ty}px) rotate(${spin}deg)`,opacity:1,offset:.73},
+          {transform:`translate(${tx+3}px,${ty-7}px) rotate(${spin+12}deg)`,opacity:1,offset:.86},
+          {transform:`translate(${tx+2}px,${ty}px) rotate(${spin+7}deg)`,opacity:1}
+        ],{duration,delay,easing:'linear',fill:'forwards'});
+        animations.push(empty,movement);
+        return movement.finished;
+      });
+      await Promise.all(fall);
+    }catch{}finally{
+      for(const animation of animations)animation.cancel();
+      for(const flight of flights)flight.remove();
+      scene.inert=false;delete scene.dataset.transferring;
+    }
+  }
   function finishAttrs(selection){
     return Object.keys(departments).map(part=>`data-${part}="${selection[part]}"`).join(' ');
   }
@@ -279,5 +370,5 @@ window.LuckyCounter = (() => {
       <header class="counter-tools">${button('back',icon('back',21),'pixel-tool','','aria-label="回到店里"')}</header>
       <section class="finish-book" aria-label="柜台样本册">${finishControls(s,l)}</section></section>`;
   }
-  return {render,connect,prepareOverview,fixtures,receipt,photo,showroom,finishControls};
+  return {render,connect,prepareOverview,fixtures,receipt,photo,showroom,finishControls,bead,scoopMotion,pourMotion};
 })();

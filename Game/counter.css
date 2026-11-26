@@ -2,6 +2,59 @@
   --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
   --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
 }
+.scoop-preference {display:flex; align-items:center; gap:6px; font-size:.9em}
+.scoop-tally {font-size:.78em; color:#795c48}
+.scoop-current {display:flex; align-items:center; gap:6px; width:100%; min-height:44px; padding:0; text-align:left}
+.scoop-current img {width:32px; height:38px; object-fit:contain}
+.scoop-current b {font-size:.85em}.scoop-current em {margin-left:auto; font-size:.8em}
+.bead-legend-link {display:flex; align-items:center; justify-content:center; gap:5px; border-top:1px dashed #ba9d7e; min-height:35px; font-size:.77em; width:100%}
+.scoop-station {position:relative; width:100%; height:100%; display:grid; grid-template-rows:minmax(0,1fr) auto; gap:5px; align-items:end}
+.scoop-station .hand-prop {height:100%}
+.lucky-bead {
+  position:relative; display:inline-grid; place-items:center; flex:none; width:clamp(20px,3.1vw,39px); aspect-ratio:1;
+  background:#74505a; border:0;
+  clip-path:polygon(0 35%,8% 35%,8% 22%,17% 22%,17% 13%,28% 13%,28% 5%,40% 5%,40% 0,60% 0,60% 5%,72% 5%,72% 13%,83% 13%,83% 22%,92% 22%,92% 35%,100% 35%,100% 65%,92% 65%,92% 78%,83% 78%,83% 87%,72% 87%,72% 95%,60% 95%,60% 100%,40% 100%,40% 95%,28% 95%,28% 87%,17% 87%,17% 78%,8% 78%,8% 65%,0 65%);
+}
+.lucky-bead::before {content:'';position:absolute;inset:2px;background:var(--bead);clip-path:inherit;box-shadow:inset 2px 2px #fff1cbbb,inset -3px -3px #71365355}
+.lucky-bead::after {content:'';position:absolute;left:24%;top:19%;width:15%;height:9%;background:#fff4d8}
+.lucky-bead .counter-item {position:relative!important; width:53%!important; height:53%!important; max-width:100%; object-fit:contain; filter:brightness(.5);opacity:.8}
+.bead-tray {
+  display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:clamp(3px,.65vw,8px); padding:clamp(9px,1.3vw,18px);
+  width:100%; background:#f6e0bc; border:3px solid #ba9274;
+  box-shadow:inset 0 0 0 3px #fff0cf,inset 0 0 0 5px #d6b28b,2px 3px #926a50;
+}
+.waiting-tray {min-height:35px; max-height:40%; overflow:auto; pointer-events:auto}.waiting-tray:empty {height:35px}
+.pour-prop {touch-action:none}
+.live-beads {align-self:center; max-height:100%; min-height:0; overflow:auto; align-content:flex-start; pointer-events:auto; scrollbar-width:thin}
+.tray-bead {position:relative; padding:3px; min-width:36px; min-height:36px; display:grid; place-items:center}
+.bead-pile {position:relative; display:block; width:clamp(22px,3.1vw,39px); aspect-ratio:1}
+.bead-pile .lucky-bead {position:absolute; inset:0; width:100%}
+.bead-pile .lucky-bead:nth-child(2) {translate:2px -3px}
+.bead-pile .lucky-bead:nth-child(3) {translate:4px -6px}
+.tray-bead>small {position:absolute; right:-3px; bottom:-2px; font:700 10px/1.1 monospace; color:#63493d; background:#fff0c8; padding:1px}
+.tray-bead.active {background:#fff5cd; outline:2px solid #9b6a54}
+.tray-bead.collected::after {content:'✓'; position:absolute; bottom:0; right:0; background:#c8dbaf; color:#365a40; padding:0 2px; font-size:12px; border:1px solid #66794f}
+.tray-bead.collected .lucky-bead {opacity:.5}
+.loaded-spoon {position:relative; width:80%; min-height:75px; flex:1; display:grid; place-items:center; padding-bottom:18px}
+.spoon-bowl {position:relative; z-index:1; width:clamp(110px,15vw,190px); aspect-ratio:1.24; background:#d2dee0; border:3px solid #7b8991; box-shadow:inset 3px 3px #f9f0d3,inset -3px -4px #aab6b8; transform:rotate(-7deg); clip-path:polygon(0 32%,6% 32%,6% 17%,16% 17%,16% 7%,31% 7%,31% 0,69% 0,69% 7%,84% 7%,84% 17%,94% 17%,94% 32%,100% 32%,100% 68%,94% 68%,94% 83%,84% 83%,84% 93%,69% 93%,69% 100%,31% 100%,31% 93%,16% 93%,16% 83%,6% 83%,6% 68%,0 68%)}
+.spoon-token {position:absolute; display:block; width:clamp(18px,2.7vw,30px); aspect-ratio:1; translate:-50% -50%}
+.spoon-token .lucky-bead {width:100%}
+.bead-flight {position:fixed; z-index:110; pointer-events:none; image-rendering:pixelated}
+.bead-flight>.lucky-bead {width:100%; height:100%}
+#game:has(.counter-scene[data-transferring]) .in-game-tutorial {visibility:hidden}
+.waiting-tray {max-height:60%;min-height:60px;height:clamp(60px,17dvh,100px)}
+.waiting-tray .lucky-bead {width:15px}
+.spoon-handle {position:absolute; width:13px; height:55%; left:60%; bottom:45%; background:#ccd5d2; border:3px solid #798891; box-shadow:inset 2px 0 #fbf1d3; transform:rotate(36deg); transform-origin:bottom}
+.pour-prop .loaded-spoon {animation:show-scoop .35s steps(5,end)}
+@keyframes show-scoop {from{translate:0 12px;rotate:-5deg}}
+.counter-scene:is([data-stage="scoop"],[data-stage="drawn"]) .counter-desk {grid-template-columns:25% 37% minmax(0,1fr);gap:3%}
+.counter-scene:is([data-stage="scoop"],[data-stage="drawn"]) {--wall-height:48dvh}
+.scoop-station .scoop-prop>.physical-prop {max-width:170px}
+.bead-rules {display:grid; grid-template-columns:1fr 1fr; gap:10px; overflow:auto}
+.bead-rule {display:flex; align-items:center; gap:8px; min-height:48px; border-bottom:1px dashed #c4aa83; font-size:.85em}
+.bead-rule>.counter-item {width:35px;height:35px;object-fit:contain}.bead-rule b{margin-left:auto}
+.scoop-options {display:flex; gap:8px}.scoop-options button {min-height:44px; flex:1; border:2px solid #a28364; background:#f6e6bf; font-weight:800}
+.scoop-options button[aria-pressed="true"] {background:#d1dfb5; border-color:#536e52}
 #game:has(> .counter-scene),#game:has(> .shop-front){width:100vw;height:100dvh;max-height:none;border:0;border-radius:0}
 .counter-scene,.shop-front{
   --edge:#694837;--parchment:#fff2d4;--leaf:#c4d7a8;--plank:#bc8760;
@@ -273,4 +326,104 @@
   .ticket-tab img{width:23px;height:23px;object-fit:contain}
   .ticket-tab em{font:700 12px/1.1 sans-serif}
   .counter-note{min-width:240px}
+}
+
+.in-game-tutorial {position:absolute; inset:0; z-index:8; pointer-events:none; color:#fff5d8}
+.tutorial-caption {
+  position:absolute; top:max(12px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
+  padding:7px 19px 9px; background:#4c303ddb; max-width:58%;
+  clip-path:polygon(5px 0,calc(100% - 5px) 0,calc(100% - 5px) 3px,100% 3px,100% calc(100% - 3px),calc(100% - 5px) calc(100% - 3px),calc(100% - 5px) 100%,5px 100%,5px calc(100% - 3px),0 calc(100% - 3px),0 3px,5px 3px);
+}
+.tutorial-caption p {margin:0; font-size:clamp(14px,1.7vw,20px); line-height:1.35; font-weight:800; letter-spacing:.04em; white-space:nowrap}
+.skip-lesson {
+  position:absolute; top:max(9px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right));
+  min-height:44px; pointer-events:auto; padding:6px 10px; border:0; background:#4c303dba;
+  color:#fff2cf; font-size:12px; line-height:1.2;
+}
+.tutorial-halo {
+  position:absolute; transform:translate(-50%,-50%); border:2px solid #fff5b8; border-radius:50%;
+  box-shadow:0 0 0 3px #ffd36e66; animation:guide-halo 1.9s ease-out infinite;
+}
+.gesture-demo {position:absolute; width:0; height:0; animation:guide-tap 1.9s ease-in-out infinite}
+.gesture-hand {position:absolute; left:-9px; top:-4px; width:40px; height:50px; max-width:none; filter:drop-shadow(1px 2px 0 #4b283d88)}
+.tap-ripple {position:absolute; left:-7px; top:-7px; width:14px; height:14px; border:2px solid #fff3b5; border-radius:50%; animation:guide-ripple 1.9s ease-out infinite}
+.gesture-goods {position:absolute; width:38px; height:38px; object-fit:contain; left:-19px; top:-19px; opacity:.85}
+.gesture-goods[hidden] {display:none}
+[data-demo="drag"] .gesture-demo,[data-demo="swipe"] .gesture-demo {animation:guide-travel 2.6s ease-in-out infinite}
+[data-demo="drag"] .tap-ripple,[data-demo="swipe"] .tap-ripple {display:none}
+[data-demo="drag"] .gesture-hand {left:-3px; top:3px}
+.in-game-tutorial.performing .gesture-demo,.in-game-tutorial.performing .tutorial-halo {opacity:0; animation-play-state:paused}
+@keyframes guide-tap {0%,40%,100%{transform:translate(4px,6px)}20%,28%{transform:translate(0,0)}}
+@keyframes guide-ripple {0%,12%,55%,100%{opacity:0;transform:scale(.6)}22%{opacity:1;transform:scale(1)}45%{opacity:0;transform:scale(2.7)}}
+@keyframes guide-halo {0%,100%{opacity:.4;scale:.94}40%{opacity:.9;scale:1.08}}
+@keyframes guide-travel {
+  0%,12%{opacity:0;transform:translate(0,0)}
+  20%,28%{opacity:1;transform:translate(0,0)}
+  72%,82%{opacity:1;transform:translate(var(--travel-x),var(--travel-y))}
+  92%,100%{opacity:0;transform:translate(var(--travel-x),var(--travel-y))}
+}
+@media (prefers-reduced-motion:reduce) {
+  .in-game-tutorial * {animation:none!important}
+  .in-game-tutorial .tap-ripple {display:none}
+}
+
+/* The incoming order and the working slip belong to the same stationery set. */
+.scoop-order-letter {
+  width:clamp(300px,36vw,460px); padding:0 20px 18px; gap:0; border:0; border-radius:0;
+  background:#fff5df; box-shadow:0 0 0 3px #e5be8f,0 0 0 6px #76513d,5px 8px #4d3832;
+  transform:translateY(-50%); overflow:visible;
+}
+.scoop-order-letter .binder {z-index:1; top:-12px; height:13px; width:24%; left:38%; border-radius:0}
+.order-stub {margin:0 -20px; padding:13px 18px 11px; background:#49675b; color:#fff0cd; display:flex; align-items:center; justify-content:space-between; gap:12px; box-shadow:inset 0 3px #92a183,inset 0 -3px #354e44}
+.order-stub>span {display:flex; align-items:center; gap:6px; font-size:clamp(12px,1.15vw,16px)}
+.order-stub h1 {font-size:clamp(16px,1.55vw,22px); color:inherit; margin:0; white-space:nowrap}
+.order-specification {display:grid; grid-template-columns:minmax(0,1.35fr) minmax(88px,1fr); align-items:center; padding:21px 0 15px; gap:12px}
+.order-scoops {display:flex; align-items:center; justify-content:center; gap:6px}
+.order-scoops>.icon {width:clamp(45px,5vw,68px); height:clamp(45px,5vw,68px); flex:none}
+.order-scoops>span {display:flex; align-items:baseline; gap:5px; color:#653e44}
+.order-scoops b {font:900 clamp(44px,5.8vw,76px)/1 Consolas,monospace}
+.order-scoops small {font-size:clamp(13px,1.35vw,19px); font-weight:800; white-space:nowrap}
+.order-color {display:grid; justify-items:center; gap:4px; border-left:2px dotted #c7ad87; color:#654743}
+.order-color small {font-size:12px; color:#8b7057}
+.order-color>.icon {width:36px; height:36px}
+.order-color b {font-size:clamp(14px,1.45vw,20px)}
+.scoop-order-letter .order-greeting {margin:0; padding:4px 0 13px; text-align:center; color:#8b6954; font-size:clamp(13px,1.2vw,17px)}
+.scoop-order-letter .letter-foot {padding-top:12px; border-top:2px dotted #ceb591}
+.scoop-order-letter .letter-foot .primary {width:100%; border:2px solid #694044; border-radius:0; background:#ffd082; color:#633c43; box-shadow:inset 0 3px #ffedb8,inset 0 -3px #e9a75b,0 3px #8f5b4a; font-weight:800; min-height:46px}
+.scoop-order-letter .scoop-options,.scoop-order-letter .wish-stamps {margin-bottom:8px}
+.scoop-ticket {padding:9px 11px; gap:6px; background:#fff5df; border-color:#805d48; border-radius:0; transform:rotate(-1deg); box-shadow:inset 0 0 0 2px #f1d8b1,2px 3px #d1a77b,3px 5px #75523f}
+.counter-scene .counter-note:has(.scoop-ticket) {align-self:end}
+.scoop-ticket .slip-head {border-bottom:1px dashed #c5a781; padding-bottom:5px}
+.scoop-ticket .slip-head b {font-size:1em; color:#684248}
+.scoop-order-strip {display:flex; align-items:center; justify-content:space-between; gap:7px; padding:2px 0}
+.scoop-order-strip>span {display:flex; align-items:center; gap:4px; white-space:nowrap}
+.scoop-order-strip>span>b {font:900 1.35em/1 Consolas,monospace; color:#664149}
+.scoop-order-strip b small {font:700 .6em/1.2 "Microsoft YaHei",sans-serif}
+.scoop-order-strip .scoop-preference {font-size:.76em; color:#79594c}
+.scoop-current {min-height:44px; gap:6px; border-top:1px dashed #d1b693; border-bottom:1px dashed #d1b693; background:#f8e6c7; padding:3px 5px; color:#644443}
+.scoop-current img {width:32px; height:36px; flex:none}
+.scoop-current b {font-size:.86em}
+.scoop-current em {font:500 .85em/1 Consolas,monospace; white-space:nowrap; color:#94745d}
+.scoop-current em strong {font-size:1.4em; color:#4c6d55}
+.scoop-ticket-foot {display:flex; align-items:center; justify-content:space-between; gap:3px}
+.scoop-ticket-foot .scoop-tally {font-size:.72em; white-space:nowrap; color:#876b54}
+.scoop-ticket-foot .bead-legend-link {width:auto; min-height:36px; border:0; padding:0 1px; font-size:.7em; color:#7d6252}
+[data-camera="near"] .scoop-ticket {padding:5px 8px; gap:3px}
+[data-camera="near"] .scoop-ticket .slip-head {padding:0 0 3px; font-size:.84em}
+[data-camera="near"] .scoop-order-strip {padding:0; font-size:.88em}
+[data-camera="near"] .scoop-order-strip .icon {width:18px; height:18px}
+[data-camera="near"] .scoop-ticket-foot {display:none}
+[data-camera="near"] .scoop-current {min-height:38px; padding:1px 3px}
+[data-camera="near"] .scoop-current img {width:27px; height:30px}
+@media (orientation:landscape) and (max-height:340px) {
+  .scoop-order-letter {width:300px; padding:0 16px 12px}
+  .order-stub {margin-inline:-16px; padding:9px 14px}
+  .order-specification {padding:12px 0 8px}
+  .scoop-order-letter .order-greeting {padding-bottom:8px}
+  .scoop-order-letter .letter-foot {padding-top:8px}
+  .scoop-ticket {padding:6px 8px; gap:3px}
+  .scoop-ticket-foot .bead-legend-link {min-height:28px}
+}
+@media (orientation:portrait) {
+  .scoop-order-letter {width:min(84%,390px); right:8%; max-height:83%; overflow:auto}
 }

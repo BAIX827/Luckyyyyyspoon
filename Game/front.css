@@ -1,0 +1,129 @@
+#game:has(> .scene) {width:100%; height:100dvh; max-height:none; padding:0; border:0; border-radius:0}
+.scene {
+  position:relative; width:100%; height:100%; overflow:hidden; isolation:isolate;
+  --plum:#52303e; --milk:#fff2ce; --inset-x:max(2.5vw,env(safe-area-inset-left));
+  --inset-y:max(3dvh,env(safe-area-inset-top)); color:var(--plum);
+  font-family:"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.25;
+}
+.scene [hidden] {display:none!important}
+.scene img,.scene canvas {image-rendering:pixelated; user-select:none; -webkit-user-drag:none}
+.scene button {font-weight:800; border-radius:0; touch-action:manipulation}
+.scene button:focus-visible {outline:3px solid #248aa0; outline-offset:3px}
+.scene button:active {filter:brightness(.92)}
+.pixel-arrow {
+  display:inline-block; width:.68em; height:.8em; background:currentColor; flex:none;
+  clip-path:polygon(0 0,28% 0,28% 16%,53% 16%,53% 32%,75% 32%,75% 45%,100% 45%,100% 58%,75% 58%,75% 73%,53% 73%,53% 87%,28% 87%,28% 100%,0 100%);
+}
+.title-scene {background:#abdbd3}
+.store-art {position:absolute; inset:0; background:url("assets/front/storefront.webp") 51% 52%/cover no-repeat; image-rendering:pixelated}
+.title-menu {
+  position:absolute; left:max(1.9vw,env(safe-area-inset-left)); top:50%; transform:translateY(-50%);
+  width:min(42vw,740px); display:grid; justify-items:center; row-gap:clamp(7px,2.4dvh,24px);
+}
+.title-menu h1 {width:100%; line-height:0; margin:0}
+.title-menu h1 img {width:100%; height:auto}
+.start-menu {display:grid; justify-items:stretch; width:65%; min-width:158px; gap:clamp(7px,1.7dvh,15px)}
+.start-game,.select-map,.take-ticket,.hud-button,.walk {
+  display:inline-flex; gap:.6em; align-items:center; justify-content:center;
+}
+.start-game,.take-ticket {
+  --rim:#693747; position:relative; min-height:clamp(48px,8dvh,77px); padding:.42em .9em;
+  border:3px solid var(--rim); color:#613344; background:#ffce74;
+  box-shadow:inset 0 3px #ffebae,inset 0 -4px #eda859,0 3px #9e5861,0 6px var(--rim);
+  font-size:clamp(20px,min(2.7vw,4.8dvh),36px); letter-spacing:.07em;
+}
+.start-game::before,.start-game::after,.take-ticket::before,.take-ticket::after {
+  content:""; position:absolute; top:calc(50% - 3px); width:3px; height:3px; background:#c98954;
+}
+.start-game::before,.take-ticket::before {left:6px}.start-game::after,.take-ticket::after {right:6px}
+.start-game .pixel-arrow {font-size:.73em}
+.select-map {
+  margin:4px 8%; min-height:44px; padding:3px .6em 5px; color:#fff4d7; border:2px solid #304d49;
+  font-size:clamp(15px,min(1.85vw,3.5dvh),24px); background:#46675d;
+  box-shadow:inset 0 2px #81957b,inset 0 -2px #3b594f,0 3px #334743;
+}
+.select-map .icon {width:1.08em; height:1.08em}
+.shop-menu {position:absolute; top:var(--inset-y); right:max(2.5vw,env(safe-area-inset-right)); z-index:2}
+.hud-button,.map-progress,.walk {
+  min-height:44px; padding:5px 12px; border:2px solid #503b39; background:#f8e2b7; color:#4b3434;
+  box-shadow:inset 0 2px #fff3cc,inset 0 -3px #d7b18a,0 3px #715248;
+  font-size:clamp(13px,1.45vw,18px);
+}
+.shop-entries {
+  position:absolute; right:0; top:calc(100% + 8px); width:max-content; min-width:155px; padding:4px;
+  border:3px solid #664437; background:#ffedc9; box-shadow:3px 4px #765640;
+}
+.shop-entry {width:100%; min-height:44px; padding:4px 12px; display:flex; align-items:center; gap:9px; text-align:left; color:#50373a}
+.shop-entry:hover,.shop-entry:focus-visible {background:#f5d3a7}
+.street-scene {background:#87b994}
+.street-camera {
+  position:absolute; inset:0; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; touch-action:pan-x;
+}
+.street-camera::-webkit-scrollbar {display:none}
+.street-world {height:100%; width:max(145%,225dvh,900px); position:relative; overflow:hidden}
+.street-art {position:absolute; left:0; width:100%; aspect-ratio:2.2; min-height:100%; top:var(--map-focus,40%); transform:translateY(var(--map-offset,-40%))}
+.panorama,.stepping-stones {display:block; position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+.map-hud {position:absolute; top:var(--inset-y); left:var(--inset-x); display:flex; align-items:center; gap:clamp(8px,1.1vw,18px); pointer-events:none}
+.map-hud button {pointer-events:auto}
+.home-key {width:44px; height:44px; padding:0}
+.chapter-sign {padding:6px clamp(12px,1.5vw,21px) 8px; color:#fff0cd; background:#3e5b52; border:2px solid #35443c; box-shadow:inset 0 2px #879780,inset 0 -2px #364f44,2px 3px #634d3e}
+.chapter-sign small {font-size:clamp(11px,.95vw,15px); color:#f0dbad; font-weight:700}
+.chapter-sign h1 {font-size:clamp(18px,min(2.3vw,4.4dvh),32px); color:inherit; line-height:1.25; margin:0}
+.map-progress {position:absolute; top:var(--inset-y); right:max(2.5vw,env(safe-area-inset-right)); display:flex; align-items:center; gap:7px; font-weight:800; font-variant-numeric:tabular-nums}
+.map-stop {
+  --node-size:clamp(36px,min(4.5vw,8dvh),70px); --fill:#d9c3a1; --hi:#f6dfb2; --shade:#b69a80; --edge:#78635b;
+  position:absolute; transform:translate(-50%,-50%); width:max(48px,calc(var(--node-size) + 10px));
+  height:max(48px,calc(var(--node-size) + 10px)); display:grid; place-items:center; padding:0; background:transparent; color:#645249;
+}
+.map-stop.current {--fill:#ec7b83; --hi:#ffb0a1; --shade:#ad5266; --edge:#633546; color:#492e38}
+.map-stop.done {--fill:#8fb893; --hi:#bdd6a1; --shade:#648d75; --edge:#385d55; color:#314b43}
+.marker-face,.marker-face::before,.marker-face::after {
+  clip-path:polygon(0 26%,8% 26%,8% 13%,19% 13%,19% 6%,31% 6%,31% 0,69% 0,69% 6%,81% 6%,81% 13%,92% 13%,92% 26%,100% 26%,100% 74%,92% 74%,92% 87%,81% 87%,81% 94%,69% 94%,69% 100%,31% 100%,31% 94%,19% 94%,19% 87%,8% 87%,8% 74%,0 74%);
+}
+.marker-face {position:relative; width:var(--node-size); height:calc(var(--node-size) * .89); display:grid; place-items:center; background:var(--edge)}
+.marker-face::before,.marker-face::after {content:""; position:absolute}
+.marker-face::before {inset:2px 2px 3px; background:var(--shade)}
+.marker-face::after {inset:2px 3px 20%; background:var(--fill); box-shadow:inset 0 3px var(--hi)}
+.marker-face b {position:relative; z-index:1; padding-bottom:.18em; font:900 clamp(16px,min(2vw,4.3dvh),30px)/1 Consolas,monospace}
+.map-stop[aria-pressed="true"] .marker-face {outline:0; --hi:#ffebbb; --edge:#69374a}
+.here-flag {display:none}
+.map-stop[aria-pressed="true"] .here-flag {
+  display:block; position:absolute; bottom:calc(50% + var(--node-size) * .51); width:17px; height:13px;
+  background:#593348; clip-path:polygon(0 0,100% 0,100% 42%,77% 42%,77% 64%,61% 64%,61% 86%,48% 100%,36% 86%,36% 67%,20% 67%,20% 43%,0 43%);
+  animation:point 1.3s steps(3,end) infinite;
+}
+.here-flag::before {content:""; position:absolute; inset:2px 3px 4px; background:#ffe4a1; clip-path:polygon(0 0,100% 0,100% 38%,74% 38%,74% 69%,55% 69%,55% 100%,39% 100%,39% 69%,23% 69%,23% 38%,0 38%)}
+@keyframes point {50%{transform:translateY(-3px)}}
+.delivered {position:absolute; right:-1px; top:2px; padding:0 2px; background:#416450; color:#fff0be; border:1px solid #334c3e; font-size:11px}
+.walk {position:absolute; top:47%; width:44px; height:44px; padding:0; background:#fff0c8; color:#725246; font-size:22px}
+.walk-left {left:max(1.5%,env(safe-area-inset-left))}
+.walk-right {right:max(1.5%,env(safe-area-inset-right))}
+.walk-left .pixel-arrow {transform:rotate(180deg)}
+.street-ticket-card {
+  position:absolute; left:var(--inset-x); bottom:max(3.8%,env(safe-area-inset-bottom)); display:flex; align-items:center;
+  gap:clamp(9px,1.2vw,18px); padding:clamp(7px,1.1dvh,12px) clamp(11px,1.25vw,20px);
+  color:#593b3c; background:#ffefd0; border:2px solid #785447;
+  box-shadow:inset 0 0 0 2px #f2dab1,2px 3px #aa8265,3px 5px #614d43;
+}
+.street-ticket-card::before {content:""; position:absolute; left:12%; top:-5px; height:5px; width:20%; border:1px solid #777d63; background:#a4b59b}
+.order-name small {font-size:clamp(11px,1.05vw,15px); color:#765246}
+.order-name h2 {font-size:clamp(15px,1.75vw,25px); line-height:1.3; margin:2px 0 0}
+.take-ticket {min-height:44px; padding:5px .85em; font-size:clamp(15px,1.5vw,22px); margin-left:4px; border-width:2px; box-shadow:inset 0 2px #ffebae,inset 0 -2px #eda859,0 2px var(--rim)}
+.locked-note {font-size:clamp(11px,1.05vw,15px); font-weight:700; padding-left:9px; margin-left:2px; border-left:1px dashed #bd9874}
+@media (orientation:portrait) {
+  .store-art {background-position:37% center}
+  .title-menu {width:min(91vw,520px); left:50%; top:72%; transform:translate(-50%,-50%)}
+  .start-menu {width:66%}
+  .street-world {width:max(230%,160dvh); height:100%}
+  .street-art {height:100%; aspect-ratio:auto}
+  .shop-menu,.map-progress {right:max(4vw,env(safe-area-inset-right))}
+  .map-hud {left:max(4vw,env(safe-area-inset-left))}
+  .street-ticket-card {left:4%; max-width:92%}
+}
+@media (max-height:340px) and (orientation:landscape) {
+  .title-menu {row-gap:0}
+  .start-menu {gap:4px}
+  .chapter-sign {padding:3px 9px}
+}
+@media (prefers-reduced-motion:reduce) {.scene * {animation:none!important}}

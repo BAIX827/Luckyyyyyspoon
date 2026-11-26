@@ -111,6 +111,15 @@
   }
   const unlockedLevel=state=>Math.min(completedLevels(state)+1,levels.length);
   const chapterFor = id => chapters[Math.floor((id-1)/10)];
+  const scoopsFor = level => level <= 10 ? 1 : level <= 40 ? 2 : 3;
+  const levelName = value => {
+    if(value===100)return '第一百关';
+    const digits='一二三四五六七八九';
+    const number=value<10?digits[value-1]:(value<20?'':digits[Math.floor(value/10)-1])+'十'+(value%10?digits[value%10-1]:'');
+    return '第'+number+'关';
+  };
+  const scoopSize = {min:20,max:28};
+  const legacyBeadsPerScoop = 6;
   function cardsFor(level) {
     return level.quantities.flatMap((quantity,kind)=>quantity ? [{
       kind, quantity, color: level.accent?.kind === kind ? level.accent.color : level.theme,
@@ -122,7 +131,10 @@
   }
   function stockCapacity(order, kind, gift=false) {
     if(!isStocked(order,kind))return 0;
-    return gift ? 2 : (order.bags.find(b=>b.kind===kind)?.quantity || 1) + (order.reserve || 0);
+    const demand = order.mode === 'scoop'
+      ? order.bags.filter(b=>b.kind===kind).reduce((sum,b)=>sum+b.quantity,0)
+      : order.bags.find(b=>b.kind===kind)?.quantity;
+    return gift ? 2 : (demand || 1) + (order.reserve || 0);
   }
   function remaining(order, goods, gift=false) {
     const group = gift ? order.gifts : order.bags.flatMap(b=>b.pieces);
@@ -139,8 +151,50 @@
       },0);
       return points/card.quantity;
     });
-    const satisfaction=Math.round(lines.reduce((sum,points)=>sum+points,0));
-    return {lines,satisfaction,earnings:satisfaction};
+    const normalized=lines.map(points=>points*5/Math.max(1,cards.length));
+    const satisfaction=Math.round(normalized.reduce((sum,points)=>sum+points,0));
+    return {lines:normalized,satisfaction,earnings:satisfaction};
+  }
+  function beginScoop(next, level, theme, scoops) {
+    const id=next.nextId++;
+    next.active={id,mode:'scoop',level:level?.id||null,theme,stockKinds:stockKinds(next),
+      customer:level?.customer||customers[(id-1)%customers.length],
+      scoopTarget:scoops,scoopsTaken:0,scoopSizes:[],beads:[],pendingBeads:[],
+      stage:'scoop',current:null,tear:0,drawer:null,reserve:2,
+      gifts:[],history:[],stamp:false,bags:[]};
+  }
+  function scoopAction(next, action, random) {
+    const a=next.active;
+    if(action==='scoop'){
+      if(a.stage!=='scoop'||a.scoopsTaken>=a.scoopTarget)return false;
+      const debut=deliveries.find(d=>d.after===a.level-1);
+      const amount=a.scoopSizes ? scoopSize.min+Math.floor(random()*(scoopSize.max-scoopSize.min+1)) : legacyBeadsPerScoop;
+      a.pendingBeads=Array.from({length:amount},(_,i)=>({
+        kind:a.scoopsTaken===0 && i===0 && debut ? debut.kind :
+          a.stockKinds[Math.floor(random()*a.stockKinds.length)],
+        color:a.theme,variant:null
+      }));
+      a.stage='drawn';
+    }else if(action==='pour'){
+      if(a.stage!=='drawn'||!a.pendingBeads.length)return false;
+      a.scoopSizes?.push(a.pendingBeads.length);
+      for(const bead of a.pendingBeads){
+        let card=a.bags.find(b=>b.kind===bead.kind&&b.color===bead.color);
+        if(!card){
+          card={...bead,wrapper:bead.color,quantity:0,pieces:[],opened:true};
+          a.bags.push(card);
+        }
+        card.quantity++;
+        a.beads.push({...bead});
+      }
+      a.pendingBeads=[];a.scoopsTaken++;
+      a.stage=a.scoopsTaken===a.scoopTarget?'shelf':'scoop';
+      a.current=a.stage==='shelf'?0:null;
+      a.drawer=a.stage==='shelf'?kinds[a.bags[0].kind].drawer:null;
+      a.shelfKind=a.stage==='shelf'?a.bags[0].kind:null;a.shelfVariant=0;
+      a.history=[];
+    }else return false;
+    return true;
   }
   function beginBatch(next, level, theme, random) {
     const id=next.nextId++;
@@ -189,7 +243,8 @@
         next.learned.shelf=true; break;
       }
       case 'station-pack':
-        if(!['shelf','tray','reveal'].includes(a.stage) || !a.bags.every(b=>b.opened) || !pieceCount(a.bags)) return false;
+        if(!['shelf','tray','reveal'].includes(a.stage) || !a.bags.every(b=>b.opened) || !pieceCount(a.bags) ||
+          a.mode==='scoop' && a.scoopsTaken!==a.scoopTarget) return false;
         a.stage='pack'; a.current=null; a.history=[]; break;
       case 'pick': {
         if(a.stage!=='tray' || !Number.isInteger(arg) || !a.bags[arg]) return false;
@@ -206,7 +261,10 @@
           a.stage='shelf'; a.shelfKind=card.kind; a.shelfVariant=0;
           a.drawer=kinds[card.kind].drawer; next.learned.shelf=true;
         }
-        saveUndo(a); card.pieces.push({...arg}); break;
+        saveUndo(a); card.pieces.push({...arg});
+        if(a.mode==='scoop'&&arg.kind===card.kind&&arg.color===card.color)
+          next.learned['goods-'+arg.kind]=true;
+        break;
       }
       case 'return-piece': {
         const bag=a.bags[arg?.bag], index=arg?.index;
@@ -259,9 +317,11 @@
         const sample=finishCatalog.find(f=>f.after===a.level);
         const newSample=sample && a.level===completedLevels(next)+1 && !ownsFinish(next,sample);
         next.orders=next.orders.concat({id:a.id,level:a.level,theme:a.theme,customer:a.customer,arrival,
+          ...(a.mode==='scoop'?{mode:a.mode,scoopTarget:a.scoopTarget,scoopsTaken:a.scoopsTaken,scoopSizes:a.scoopSizes,beads:a.beads}:{}),
           ...(newSample?{sample:sample.id}:{}),
           completed:arg || new Date().toISOString(),cards,items,gifts:a.gifts,stamp:a.stamp,
           fresh:[...new Set(keys.filter(key=>!known.has(key)))],satisfaction,earnings});
+        if(a.mode==='scoop'&&a.level===1)next.learned['first-order']=true;
         next.active=null; break;
       }
       default: return false;
@@ -298,12 +358,29 @@
     const order = next.active;
     const validIndex = value => Number.isInteger(value) && value >= 0 && value < 5;
     const stage = name => order && order.stage === name;
+    if(action==='tutorial-skip'){
+      if(arg!=='first-order'&&!deliveries.some(d=>'goods-'+d.kind===arg))return state;
+      if(next.learned[arg])return state;
+      next.learned[arg]=true;next.revision++;return next;
+    }
+    if(order?.mode==='scoop' && ['scoop','pour'].includes(action)){
+      if(!scoopAction(next,action,random))return state;
+      next.revision++;return next;
+    }
     if(order?.gifts && !['intro','setting','tear','shelf','drawer','browse','undo','discard'].includes(action)){
       if(!batchAction(next,action,arg)) return state;
       next.revision++;
       return next;
     }
     switch (action) {
+      case 'start-scoop-level': {
+        const level=levels[arg-1];
+        if(order||!level||!Number.isInteger(arg)||arg>unlockedLevel(state))return state;
+        beginScoop(next,level,level.theme,scoopsFor(arg));break;
+      }
+      case 'start-scoop-free':
+        if(order||!validColor(arg?.theme)||![1,2,3].includes(arg?.scoops))return state;
+        beginScoop(next,null,arg.theme,arg.scoops);break;
       case 'start-level': {
         const level=levels[arg-1];
         if(order || !Number.isInteger(arg) || !level || arg>unlockedLevel(state)) return state;
@@ -412,7 +489,36 @@
     return order && validId(order.id) && validColor(order.theme) &&
       (customers.includes(order.customer) || levels.some(l=>l.customer===order.customer));
   }
+  function validScoop(a,cards,active=false) {
+    const bead=b=>b && validKind(b.kind) && validColor(b.color) && b.variant===null;
+    if(!Number.isInteger(a.scoopsTaken)||a.scoopsTaken<0||a.scoopsTaken>3)return false;
+    const sizes=a.scoopSizes===undefined?Array.from({length:a.scoopsTaken},()=>legacyBeadsPerScoop):a.scoopSizes;
+    const validSize=n=>Number.isInteger(n)&&(a.scoopSizes===undefined?n===legacyBeadsPerScoop:n>=scoopSize.min&&n<=scoopSize.max);
+    if(![1,2,3].includes(a.scoopTarget)||!Number.isInteger(a.scoopsTaken)||
+      a.scoopsTaken<0||a.scoopsTaken>a.scoopTarget||
+      !Array.isArray(sizes)||sizes.length!==a.scoopsTaken||!sizes.every(validSize)||
+      !Array.isArray(a.beads)||a.beads.length!==sizes.reduce((sum,n)=>sum+n,0)||!a.beads.every(bead))return false;
+    if(!Array.isArray(cards)||!cards.every(validCard)||
+      new Set(cards.map(b=>b.kind+'|'+b.color)).size!==cards.length||
+      cards.reduce((sum,b)=>sum+b.quantity,0)!==a.beads.length||
+      !cards.every(b=>b.variant===null&&b.quantity===a.beads.filter(t=>t.kind===b.kind&&t.color===b.color).length))return false;
+    if(!active)return a.scoopsTaken===a.scoopTarget;
+    const collecting=['scoop','drawn'].includes(a.stage);
+    return Array.isArray(a.stockKinds)&&a.stockKinds.length>0&&a.stockKinds.every(validKind)&&
+      a.beads.concat(a.pendingBeads||[]).every(b=>a.stockKinds.includes(b.kind))&&
+      Array.isArray(a.pendingBeads)&&a.pendingBeads.every(bead)&&
+      (a.stage==='drawn'?validSize(a.pendingBeads.length):a.pendingBeads.length===0)&&
+      (collecting ? a.scoopsTaken<a.scoopTarget && a.current===null :
+        a.scoopsTaken===a.scoopTarget && ['shelf','pack','gifts','seal'].includes(a.stage))&&
+      Array.isArray(a.gifts)&&a.gifts.length<=2&&a.gifts.every(validGoods)&&
+      (a.level===null||validId(a.level)&&!!levels[a.level-1])&&cards.every(b=>b.opened===true);
+  }
   function validActive(a) {
+    if(a?.mode==='scoop'){
+      const current=a.current===null||Number.isInteger(a.current)&&a.current>=0&&a.current<a.bags?.length;
+      return validOrderBase(a)&&current&&(a.stage!=='shelf'||a.current!==null)&&
+        Number.isFinite(a.tear)&&validScoop(a,a.bags,true);
+    }
     if (!validOrderBase(a) || !Array.isArray(a.bags) || a.bags.length!==5 ||
         !a.bags.every(b=>b && validColor(b.wrapper)) || !Number.isFinite(a.tear)) return false;
     const hasCurrent=Number.isInteger(a.current) && a.current>=0 && a.current<5;
@@ -430,6 +536,8 @@
   function validReceipt(o) {
     if (!validOrderBase(o) || !Array.isArray(o.items) || !o.items.every(validGoods) ||
         !Array.isArray(o.fresh) || !Number.isFinite(o.satisfaction) || !Number.isFinite(o.earnings)) return false;
+    if(o.mode==='scoop')return validScoop(o,o.cards)&&Array.isArray(o.gifts)&&o.gifts.length<=2&&
+      o.gifts.every(validGoods)&&(o.level===null||!!levels[o.level-1]);
     if (!o.cards) return o.items.every(g=>validKind(g.wish));
     return Array.isArray(o.cards) && o.cards.length===5 && o.cards.every(validCard) &&
       Array.isArray(o.gifts) && o.gifts.every(validGoods) && (o.level===null || !!levels[o.level-1]);
@@ -456,7 +564,8 @@
   }
   const api={themes,kinds,customers,copy,initial,count,itemName,itemKey,canUndo,validate,collection,score,packedItems,step,decode,
     levels,chapters,chapterFor,cardsFor,rateCards,pieceCount,stockCapacity,remaining,giftKinds,unlockedLevel,
-    deliveries,stockKinds,isStocked,finishCatalog,finishes,ownsFinish,finishAvailable,completedLevels,balance};
+    deliveries,stockKinds,isStocked,finishCatalog,finishes,ownsFinish,finishAvailable,completedLevels,balance,
+    scoopsFor,scoopSize,levelName};
   root.LuckyCore=api;
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
 })(globalThis);
