@@ -121,7 +121,7 @@
       <i class="mail-envelope" aria-hidden="true"></i><article class="reply-paper"><div class="scroll reply-scroll"><div class="letter-head"><span>${level?C.levelName(level.id):'来信'}</span><small>#${num(o.id)}${o.mode==='scoop'?' · '+o.scoopTarget+' 勺':''}</small></div><h1>${o.customer}的回信</h1>
       <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="letter-signature">—— ${o.customer}</div><div class="reply-totals"><span>${level?rating:'满意度 <b>'+o.satisfaction+'%</b>'}</span>${till}</div>${crown}
       ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}${rows?`<div class="receipt-fixes">${rows}</div>`:''}</div>
-      ${detail?'':`<div class="letter-foot">${button('book','关卡册','text-btn')}${next}</div>`}</article>`,'shop-front delivery-front');
+      ${detail?'':`<div class="letter-foot">${button('book','关卡册','reply-bookmark')}${next}</div>`}</article>`,'shop-front delivery-front');
   }
   function play(s,l) {
     const a=s.active, cur=a.current===null?null:a.bags[a.current], placed=C.count(a), undo=(C.canUndo(a)?button('undo','撤回','text-btn'):'');

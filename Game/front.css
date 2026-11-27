@@ -232,7 +232,9 @@
   background-image:radial-gradient(circle at 50% 45%,#ce9780 0 1px,transparent 1.4px),
     radial-gradient(ellipse at 50% 0,#fff9df 0 60%,#cb9b7a 62% 68%,transparent 70%),
     repeating-linear-gradient(90deg,transparent 0 6px,#fff4df88 6px 12px),
-    repeating-linear-gradient(0deg,var(--thread) 0 5px,#f5d6bf 5px 10px),var(--note-stock);
+    repeating-linear-gradient(0deg,var(--thread) 0 5px,#f5d6bf 5px 10px),
+    repeating-linear-gradient(0deg,transparent 0 23px,#b99a6820 23px 24px);
+  background-color:#fff0cd;
   background-size:14px 6px,14px 9px,100% 14px,100% 14px,auto;
   background-position:0 14px,0 14px,0 0,0 0,0 0;
   background-repeat:repeat-x,repeat-x,no-repeat,no-repeat,repeat
@@ -247,3 +249,106 @@
 .counter-scene .ticket-paper .binder,.street-ticket-card::before{background:repeating-linear-gradient(90deg,#a4b893 0 4px,#c7d5af 4px 8px);border-block:1px dotted #f5f1d0}
 .reply-paper .letter-signature::before{content:'✿';color:#b56278;margin-right:.4em}
 .order-front .order-letter .order-stub{padding-top:16px}
+
+
+/* One stitched edge per prop; the quantities are ink on the same sheet. */
+.veil .dialog:has(.expanded-lines),.delivery-front .reply-paper{
+  background:url(assets/counter/linen-hem.png) left top/12px 11px repeat-x,var(--note-stock);
+  box-shadow:inset 2px 0 #ecd6ac,1px 2px #bd9672,3px 4px #795c4455;
+}
+.dialog:has(.expanded-lines)::before{background:#aaba93;height:8px;width:46px;left:calc(50% - 23px)}
+.dialog:has(.expanded-lines) header::before{display:none}
+.dialog .note-line em,.scoop-ticket .scoop-current em{
+  color:#624936;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.035em
+}
+.dialog .note-line[aria-current=true]{box-shadow:inset 3px 0 #9aa984;background:#dedfba66;padding-left:6px}
+.counter-scene .scoop-ticket{background:var(--note-stock)}
+.counter-scene .scoop-ticket .binder{background:var(--gingham);border:0}
+.in-game-tutorial .tutorial-caption{border:1px solid #aa8664;box-shadow:1px 2px #a2826266}
+.in-game-tutorial .tutorial-caption::before{background:#aabe9a;width:14px;height:5px}
+.reply-paper .order-stars{border:0;padding:0;color:#9a613d}
+.reply-paper .receipt-till{color:#78543c}
+@media(orientation:landscape) and (min-height:360px){
+  .delivery-front .reply-paper{top:max(12%,var(--safe-top));bottom:max(7%,var(--safe-bottom))}
+}
+
+/* Rounded die-cut stationery with a second sheet peeking out at the foot. */
+.veil .dialog:has(.expanded-lines),.delivery-front .reply-paper,.order-front .order-letter{
+  border:1px solid #cfa785;
+  border-radius:22px 27px 32px 19px / 19px 23px 32px 21px;
+  background:radial-gradient(ellipse at 96% 100%,#e8c79c55,transparent 16%),
+    repeating-linear-gradient(0deg,transparent 0 23px,#c29e6c18 23px 24px),#fff2d8;
+  box-shadow:inset 0 2px #fff8e6,inset 0 -2px #eed7b2,1px 3px #e7c8a1,1px 4px #bb987a,2px 7px 3px #68482d36;
+}
+.veil .dialog:has(.expanded-lines){padding:18px 20px 14px}
+.dialog:has(.expanded-lines)::before{left:43%;top:0;width:14%;height:8px;border-radius:0 0 7px 6px;background:var(--gingham);box-shadow:none}
+.veil .dialog:has(.expanded-lines) header,.reply-paper .letter-head{border-bottom:1px dashed #cfaf92}
+.veil .dialog:has(.expanded-lines) header button{border-radius:50%;border-color:#d4a699;background:#f6d9ce;box-shadow:0 2px #d4b496}
+.dialog .note-line[aria-current=true]{border-radius:10px;box-shadow:none;background:#e4e6ca;padding-inline:6px}
+.dialog .note-line:last-child{border-bottom-color:transparent}
+.delivery-front .reply-paper{padding-inline:clamp(18px,2vw,28px)}
+.delivery-front .mail-envelope{border-radius:8px 11px 16px 10px}
+.counter-scene .ticket-paper{border-radius:11px 15px 19px 12px;box-shadow:0 2px #ddbc98,1px 4px 2px #77553750}
+.in-game-tutorial .tutorial-caption{border-radius:10px 12px 12px 5px;box-shadow:1px 2px #ad896854}
+
+/* Cut the same ribbon at two widths for the counter slip and full sheets. */
+[data-trim="strawberry"]{--paper-trim:url(assets/counter/trim-strawberry.png)}
+[data-trim="sailor"]{--paper-trim:url(assets/counter/trim-sailor.png)}
+[data-trim="apricot"]{--paper-trim:url(assets/counter/trim-apricot.png)}
+[data-trim="sugarbead"]{--paper-trim:url(assets/counter/trim-sugarbead.png)}
+.veil .dialog:has(.expanded-lines),.delivery-front .reply-paper,
+.counter-scene .ticket-paper,.showroom .finish-book:has([data-part="trim"]),.finish-chip[data-trim]{
+  --trim-tile:24px 16px;
+  --trim-tab:38px 9px;
+  background:url(assets/counter/trim-bow.png) center top/var(--trim-tab) no-repeat,
+    var(--paper-trim) left top/var(--trim-tile) repeat-x,var(--note-stock);
+}
+.veil .dialog:has(.expanded-lines),.delivery-front .reply-paper{
+  border-radius:12px 14px 20px 12px;
+  padding-top:23px;
+}
+.veil .dialog:has(.expanded-lines)::before,.counter-scene .ticket-paper .binder{display:none}
+.counter-scene .ticket-paper{
+  --trim-tile:15px 10px;
+  --trim-tab:24px 6px;
+  padding-top:12px;
+}
+.delivery-front .reply-paper::before{top:19px}
+.showroom .finish-book:has([data-part="trim"]){padding-top:19px}
+.finish-chip[data-trim]{
+  width:100%;height:29px;
+  border:1px solid #c9ac8d;border-radius:4px 4px 6px 3px;
+}
+.finish-swatch:has([data-trim]){font-size:clamp(11px,1.5vw,14px)}
+
+/* The reply carries a cloth page marker and a narrow green paper tab. */
+.reply-paper .letter-foot{padding-top:2px}
+.reply-paper .letter-foot button{
+  position:relative;isolation:isolate;min-height:44px;min-width:0;
+  padding:0 15px;font-weight:700;white-space:nowrap
+}
+.reply-paper .letter-foot .reply-bookmark{
+  margin-left:-10px;color:#794f46;padding-inline:13px 18px
+}
+.reply-paper .letter-foot .reply-bookmark::before,.reply-paper .letter-foot .primary::before{
+  content:'';position:absolute;inset:7px 0;z-index:-1;
+  border-block:1px solid #c39983;background:#edd2b9;
+  clip-path:polygon(0 0,100% 0,calc(100% - 6px) 50%,100% 100%,0 100%);
+  box-shadow:inset 0 2px #fae3cb,inset 0 -2px #ddbaa2
+}
+.reply-paper .letter-foot .primary{
+  min-width:0;padding:0 20px;background:transparent;clip-path:none;box-shadow:none;color:#395643
+}
+.reply-paper .letter-foot .primary::before{
+  inset:5px 0;background:#bfd2ac;border-color:#94ab88;
+  box-shadow:inset 0 2px #d7e5c6,inset 0 -2px #a4bd99;
+  clip-path:polygon(0 0,100% 0,100% 100%,0 100%,5px 50%)
+}
+.tutorial-caption::after{
+  content:'';position:absolute;width:8px;height:8px;background:#fff0c8;
+  border:solid #aa8664;border-width:0 1px 1px 0;pointer-events:none
+}
+.tutorial-caption[data-side="above"]::after{left:var(--tip);bottom:-5px;transform:translateX(-50%) rotate(45deg)}
+.tutorial-caption[data-side="below"]::after{left:var(--tip);top:-5px;transform:translateX(-50%) rotate(225deg)}
+.tutorial-caption[data-side="right"]::after{top:var(--tip);left:-5px;transform:translateY(-50%) rotate(135deg)}
+.tutorial-caption[data-side="left"]::after{top:var(--tip);right:-5px;transform:translateY(-50%) rotate(-45deg)}

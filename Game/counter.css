@@ -20,11 +20,13 @@
 .lucky-bead .counter-item {position:relative!important; width:53%!important; height:53%!important; max-width:100%; object-fit:contain; filter:brightness(.5);opacity:.8}
 .bead-tray {
   display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:clamp(3px,.65vw,8px); padding:clamp(9px,1.3vw,18px);
-  width:100%; background:#f6e0bc; border:3px solid #ba9274;
-  box-shadow:inset 0 0 0 3px #fff0cf,inset 0 0 0 5px #d6b28b,2px 3px #926a50;
+  width:100%; border:2px solid #b88a61; border-bottom-color:#9b704f;
+  border-radius:14px 14px 18px 17px / 10px 10px 14px 14px;
+  background:linear-gradient(#f6dcb9d9,#f3d5aad9),url(assets/counter/shelf-back.webp) center/150px 90px;
+  box-shadow:inset 0 2px #fff0ca,inset 0 4px #c9a279,inset 0 -3px #ffe8be,
+    0 3px #c0946e,0 4px #977151,1px 6px 2px #6b452a45;
 }
 .waiting-tray {min-height:35px; max-height:40%; overflow:auto; pointer-events:auto}
-.waiting-tray:empty {background:radial-gradient(ellipse 42% 34% at 50% 52%,#fffaf0 0 62%,#ead2ac 63% 70%,transparent 71%),#f6e0bc}
 .pour-prop {touch-action:none}
 .live-beads {align-self:center; max-height:100%; min-height:0; overflow:auto; align-content:flex-start; pointer-events:auto; scrollbar-width:thin}
 .tray-bead {position:relative; padding:4px; min-width:44px; min-height:44px; display:grid; place-items:center}
@@ -36,7 +38,7 @@
 .bead-pile {position:absolute; left:-2px; top:-2px; z-index:1; display:block; width:clamp(15px,1.9vw,22px); aspect-ratio:1}
 .bead-pile .lucky-bead {position:absolute; inset:0; width:100%}
 .tray-bead>small {position:absolute; right:-3px; bottom:-2px; font:700 10px/1.1 monospace; color:#63493d; background:#fff0c8; padding:1px}
-.tray-bead.active {background:#fff5cd; outline:2px solid #9b6a54}
+.tray-bead.active {border-radius:6px;background:#fff4d6;box-shadow:inset 0 -2px #d3b68b,0 0 0 1px #b0936e}
 .tray-bead.collected::after {content:'✓'; position:absolute; bottom:0; right:0; background:#c8dbaf; color:#365a40; padding:0 2px; font-size:12px; border:1px solid #66794f}
 .tray-bead.collected .bead-goods {opacity:.45}
 .tray-bead.misfit::after {content:'!'; position:absolute; bottom:0; right:0; background:#f3c4b8; color:#8a3a33; padding:0 4px; font:800 12px/1.2 monospace; border:1px solid #9d5148}
@@ -284,7 +286,15 @@
 .finish-tab{flex:1;min-height:36px;font-weight:700}.finish-tab[aria-pressed="true"]{box-shadow:inset 0 -3px #8b6245}
 .finish-samples{padding:5px 0}.finish-swatch{flex:1;min-width:0;display:grid;justify-items:center;gap:3px;font-size:.82rem;padding:3px}
 .finish-chip{width:88%;height:clamp(14px,3.5vh,32px);border:2px solid #977654;box-shadow:1px 1px #c6aa89;image-rendering:pixelated}
-.finish-swatch[aria-pressed="true"]{outline:2px solid #728662;outline-offset:-2px;background:#e8e7c7}
+.finish-swatch[aria-pressed="true"]{position:relative;background:#e6cfab44;border-radius:5px}
+.finish-swatch[aria-pressed="true"]::after{
+  content:'';position:absolute;top:0;right:0;width:15px;height:15px;background:#648368;
+  border:1px solid #516d55;border-radius:50%;box-shadow:inset 0 0 0 1px #bbca9e;pointer-events:none
+}
+.finish-swatch[aria-pressed="true"]::before{
+  content:'';position:absolute;z-index:1;right:4px;top:5px;width:7px;height:3px;
+  border:solid #fff4d7;border-width:0 0 2px 2px;transform:rotate(-45deg);pointer-events:none
+}
 .finish-sleeve{color:#715944}
 .sleeve-paper{position:relative;background:#e6cdae;border-color:#b49a79;box-shadow:inset 0 3px #f2e0c4,1px 1px #cfb695}
 .sleeve-paper::after{content:"";position:absolute;width:10px;height:6px;top:2px;left:calc(50% - 5px);background:#b78061;box-shadow:inset 2px 2px #d9a17b}

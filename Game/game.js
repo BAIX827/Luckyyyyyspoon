@@ -18,6 +18,7 @@
     const scroll=keep&&!counter?(root.querySelector('.scroll')?.scrollTop||0):0;
     const dialogScroll=keep&&local.modals.length?(root.querySelector('.dialog')?.scrollTop||0):0;
     const focused=document.activeElement,prevFocus=focused?.dataset?.act,prevVal=focused?.dataset?.val;
+    root.dataset.trim=state.display.equipped.trim;
     root.dataset.view=id;root.classList.toggle('reduced',reduced());root.dataset.page=local.page;
     const theme=C.themes[state.active?.theme||local.request]||C.themes.pink;
     root.style.setProperty('--order-color',theme.swatch);

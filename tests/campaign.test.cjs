@@ -219,3 +219,20 @@ test('three stars need a flawless box; a chapter of three-star levels pays a bon
   s.orders=orders.slice(0,9).concat({level:10,satisfaction:99,earnings:99});
   assert.equal(C.perfectChapters(s.orders)[0],false);
 });
+
+test('existing shops receive the default paper trim and can dress paper independently of cloth',()=>{
+  const g=run();
+  g.do('start-level',1);fillCards(g);ship(g);
+  const old=C.copy(g.state);
+  delete old.display.equipped.trim;
+  const saved=run(C.decode(JSON.stringify(old)));
+  assert.equal(saved.state.display.equipped.trim,'strawberry');
+  saved.blocked('furnish',{part:'trim',id:'apricot'});
+  saved.do('furnish',{part:'trim',id:'sailor'});
+  const reopened=run(C.decode(JSON.stringify(saved.state)));
+  assert.equal(reopened.state.display.equipped.trim,'sailor');
+  reopened.do('furnish',{part:'trim',id:'strawberry'});
+  reopened.do('furnish',{part:'trim',id:'sailor'});
+  assert.equal(reopened.state.display.equipped.cloth,'gingham');
+  assert.equal(C.balance(reopened.state),20);
+});

@@ -136,18 +136,39 @@ window.LuckyTutorial = (() => {
       if (box) { dx = box.left - bounds.left + box.width * .5 - x; dy = box.top - bounds.top + box.height * .45 - y; }
     }
     const caption = tutorialLayer.querySelector('.tutorial-caption');
-    // Drag instructions belong at the destination; the animated hand starts at the item.
-    const anchor = gestureKind === 'drag' ? game.querySelector(stepTarget.matches('.pour-prop') ? '.waiting-tray' : '[data-box]') : stepTarget;
-    const target = anchor?.getBoundingClientRect() || r;
-    const left = target.left - bounds.left + (target.width-caption.offsetWidth)/2;
-    const above = target.top - bounds.top - caption.offsetHeight - 4;
-    const top = above >= 8 ? above : target.bottom - bounds.top + 4;
-    caption.style.left = Math.round(Math.max(6,Math.min(left,bounds.width-caption.offsetWidth-6)))+'px';
-    caption.style.top = Math.round(Math.max(6,Math.min(top,bounds.height-caption.offsetHeight-6)))+'px';
+    // Choose a spot beside the action that leaves the shop controls exposed.
+    const w=caption.offsetWidth, h=caption.offsetHeight, gap=9;
+    const clamp=(n,min,max)=>Math.max(min,Math.min(n,max));
+    const cx=bounds.left+x, cy=bounds.top+y;
+    const left=clamp(cx-w/2,bounds.left+6,bounds.right-w-6);
+    const top=clamp(cy-h/2,bounds.top+6,bounds.bottom-h-6);
+    // Large targets (a whole bay or the scoop) only need clearance around the gesture.
+    const halfW=Math.min(r.width/2,Math.max(22,size/2)), halfH=Math.min(r.height/2,Math.max(22,size/2));
+    const choices=[
+      {side:'above',x:left,y:cy-halfH-gap-h}, {side:'below',x:left,y:cy+halfH+gap},
+      {side:'right',x:cx+halfW+gap,y:top}, {side:'left',x:cx-halfW-gap-w,y:top}
+    ];
+    const controls=[game.querySelector('.counter-tools'),tutorialLayer.querySelector('.skip-lesson')]
+      .filter(Boolean).map(el=>el.getBoundingClientRect());
+    const fits=pos=>pos.x>=bounds.left+4 && pos.x+w<=bounds.right-4 &&
+      pos.y>=bounds.top+4 && pos.y+h<=bounds.bottom-4 &&
+      controls.every(box=>pos.x+w+4<=box.left || pos.x>=box.right+4 ||
+        pos.y+h+4<=box.top || pos.y>=box.bottom+4);
+    const place=choices.find(fits);
+    caption.style.visibility=place?'visible':'hidden';
+    if(place){
+      const vertical=place.side==='above'||place.side==='below';
+      const tip=vertical?clamp(cx-place.x,9,w-9):clamp(cy-place.y,9,h-9);
+      caption.dataset.side=place.side;
+      caption.style.setProperty('--tip',Math.round(tip)+'px');
+      caption.style.left=Math.round(place.x-bounds.left)+'px';
+      caption.style.top=Math.round(place.y-bounds.top)+'px';
+    }
     demo.style.setProperty('--travel-x',dx+'px');
     demo.style.setProperty('--travel-y',dy+'px');
   }
   window.addEventListener('resize',positionTutorial);
+  game.addEventListener('scroll',positionTutorial,{capture:true,passive:true});
   const connectCounter = LuckyCounter.connect;
   LuckyCounter.connect = (...args) => {
     const update = connectCounter(...args);

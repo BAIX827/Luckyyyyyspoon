@@ -46,10 +46,14 @@
     {part:'rack', id:'sage', name:'青瓷漆柜', after:12, price:760},
     {part:'cloth', id:'berry', name:'莓果织花', after:27, price:1380},
     {part:'desk', id:'milk', name:'奶油漆木', after:50, price:2300},
-    {part:'rack', id:'cherry', name:'樱桃木柜', after:90, price:3400}
+    {part:'rack', id:'cherry', name:'樱桃木柜', after:90, price:3400},
+    {part:'trim', id:'strawberry', name:'草莓奶格', after:0, price:0},
+    {part:'trim', id:'sailor', name:'海盐水手', after:0, price:80},
+    {part:'trim', id:'apricot', name:'杏桃邮票', after:0, price:140},
+    {part:'trim', id:'sugarbead', name:'葡萄糖珠', after:0, price:220}
   ];
-  const finishes=Object.fromEntries(['desk','cloth','rack'].map(part=>[part,finishCatalog.filter(f=>f.part===part)]));
-  const basicDisplay=()=>({purchases:{},equipped:{desk:'maple',cloth:'gingham',rack:'beech'}});
+  const finishes=Object.fromEntries(['desk','cloth','rack','trim'].map(part=>[part,finishCatalog.filter(f=>f.part===part)]));
+  const basicDisplay=()=>({purchases:{},equipped:{desk:'maple',cloth:'gingham',rack:'beech',trim:'strawberry'}});
   // Every level of a chapter shipped at three stars pays a one-time bonus, derived from the orders themselves.
   const chapterBonus=200;
   // Chapter one is the free trial; later levels need the one-time full-game purchase.
@@ -572,6 +576,7 @@
     if(typeof value.settings.music!=='boolean') throw new Error('存档音乐设置无法读取');
     if(value.display===undefined)value.display=basicDisplay();
     const {purchases,equipped}=value.display||{};
+    if(equipped && typeof equipped==='object' && equipped.trim===undefined)equipped.trim=basicDisplay().equipped.trim;
     if(!purchases || typeof purchases!=='object' || Array.isArray(purchases) || !equipped ||
       !Object.entries(purchases).every(([id,p])=>finishCatalog.some(f=>f.id===id&&f.price>0) && Number.isSafeInteger(p)&&p>=0) ||
       !Object.entries(finishes).every(([part,options])=>options.some(f=>f.id===equipped[part]&&(!f.price||Object.hasOwn(purchases,f.id)))) ||

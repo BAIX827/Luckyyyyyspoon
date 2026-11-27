@@ -2,7 +2,7 @@
 window.LuckyCounter = (() => {
   const C = LuckyCore;
   const {button, icon} = LuckyView;
-  const departments={desk:'桌面',cloth:'桌布',rack:'货架'};
+  const departments={desk:'桌面',cloth:'桌布',rack:'货架',trim:'花边'};
   const colors = Object.keys(C.themes);
   const bays = ['发饰', '书写', '纸品', '随身'];
   const fixtures = ['velvet','holes','books','cards','files','pegs','velvet','cards','velvet','holes','files','files','holes','files','spindle','files','pegs','pegs','pegs','files','pegs','files','binder-rail','cup-grid'];
@@ -35,7 +35,7 @@ window.LuckyCounter = (() => {
     if(a.mode==='scoop'){
       if(expanded)return '<div class="expanded-lines">'+a.bags.map((b,i)=>
         button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em>${b.pieces.length}/${b.quantity}</em>`,
-          'note-line'+(misfits(b)?' has-misfit':''),i,['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':'')).join('')+'</div>';
+          'note-line'+(misfits(b)?' has-misfit':''),i,`style="--tag-paper:${C.themes[b.color].pale}" ${i===a.current?'aria-current="true"':''} ${['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':''}`)).join('')+'</div>';
       const b=a.bags[a.current], packed=C.pieceCount(a.bags);
       return `<div class="ticket-paper scoop-ticket"><span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?C.levelName(a.level):'#'+num(a.id)}</small></span>
         <div class="scoop-order-strip"><span>${icon('spoon',24)}<b>${a.scoopTarget}<small> 满勺</small></b></span><span class="scoop-preference">${icon(a.theme,21)}${C.themes[a.theme].name}</span></div>
@@ -366,10 +366,10 @@ window.LuckyCounter = (() => {
     const tabs=Object.entries(departments).map(([id,name])=>button('finish-part',name,'finish-tab',id,`aria-pressed="${part===id}"`)).join('');
     const available=options.filter(f=>C.finishAvailable(s,f,through));
     const upcoming=options.find(f=>!C.finishAvailable(s,f,through));
-    const swatches=available.map(f=>button('finish-preview',`<i class="finish-chip chip-${f.id}"></i><span>${f.name}</span>`,'finish-swatch',f.id,`aria-pressed="${f.id===selected.id}"`)).join('');
+    const swatches=available.map(f=>button('finish-preview',`<i class="finish-chip chip-${f.id}" ${part==='trim'?`data-trim="${f.id}"`:''}></i><span>${f.name}</span>`,'finish-swatch',f.id,`aria-pressed="${f.id===selected.id}"`)).join('');
     const sleeve=upcoming?`<div class="finish-swatch finish-sleeve" aria-label="寄出第 ${upcoming.after} 关订单后到样"><i class="finish-chip sleeve-paper" aria-hidden="true"></i><span>第 ${upcoming.after} 关到样</span></div>`:'';
     const caption=active?'已换上':owned?'换上':funds<selected.price?`${selected.price} 星币 · 差 ${selected.price-funds}`:`买下并换上 · ${selected.price}`;
-    return `<div class="finish-tabs" aria-label="陈列部位">${tabs}</div><div class="finish-samples">${swatches}${sleeve}</div>
+    return `<div class="finish-tabs" data-part="${part}" aria-label="陈列部位">${tabs}</div><div class="finish-samples">${swatches}${sleeve}</div>
       <div class="finish-checkout"><span>${icon('star',18)} ${funds}</span>${button('finish-apply',caption,'btn primary',selected.id,active||!owned&&funds<selected.price?'disabled':'')}</div>`;
   }
   function showroom(s,l) {
