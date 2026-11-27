@@ -71,12 +71,12 @@
   }
   function sound(which,delay=0){P.play(which,state.settings,delay);}
   function itemSound(kind){sound(['cloth','pen','book','clip','paper','zip','cloth','clip','cloth','pen','paper','tape','pen','paper','tape','paper','clip','clip','cloth','clip','cloth','clip','clip','ceramic'][kind]);}
-  async function takeFromRack(goods,dropped=null) {
+  async function takeFromRack(goods,dropped=null,dragged=false) {
     const a=state.active, card=a?.bags[a.current], value=[goods.color,goods.kind,goods.variant].join('|');
     const slot=root.querySelector(`.shelf-bay.inspected .rack-slot[data-val="${value}"]`);
     const from=!reduced() ? dropped || slot?.querySelector('img')?.getBoundingClientRect() : null;
     const image='assets/items/'+goods.color+'-'+goods.kind+'-'+goods.variant+'.png';
-    if(!await change('add-piece',goods,false))return false;
+    if(!await change(dragged?'rack-drop':'add-piece',goods,false))return false;
     render();
     const misfit=card && !C.fits(card,goods);
     itemSound(goods.kind);
@@ -387,6 +387,7 @@
     // A full bag can pull the camera back while the finger is still down.
     // Consume that release even if the shelf overview is now under the finger.
     if(ignoreStockClick){if(event.cancelable)event.preventDefault();return;}
+    if(tap && Math.hypot(t.clientX-tap.x,t.clientY-tap.y)>=5){if(event.cancelable)event.preventDefault();return;}
     if(!tap || !event.cancelable || !tap.el.isConnected || tap.el.disabled ||
       !tap.el.contains(document.elementFromPoint(t.clientX,t.clientY)))return;
     event.preventDefault();
@@ -416,9 +417,21 @@
   });
   root.addEventListener('pointerdown',e=>{
     if(pointer||!state?.active||e.button!==0||local.modals.length)return;
-    const el=e.target.closest('[data-gesture],[data-drag]');if(!el||el.disabled)return;
-    P.unlock();const type=el.dataset.gesture||el.dataset.drag;
+    let el=e.target.closest('[data-gesture],[data-drag]');
+    const bay=e.target.closest('.bay-hit');
+    if(bay && ['shelf','gifts'].includes(state.active.stage)){
+      // The transparent bay button still owns taps. A drag can lift the sprite beneath it.
+      el=document.elementsFromPoint(e.clientX,e.clientY)
+        .map(node=>node.closest('.rack-slot:not(.sold-out)')).find(slot=>slot && bay.parentElement.contains(slot) && !slot.closest('.off-sale'));
+    }
+    if(!el||el.disabled)return;
+    P.unlock();const type=bay?'stock-piece':el.dataset.gesture||el.dataset.drag;
     pointer={id:e.pointerId,type,el,x:e.clientX,y:e.clientY,last:state.active.tear,sounded:false,start:state.active.tear,from:Number(el.dataset.slot),moved:false,order:state.active.id,current:state.active.current};
+    if(['stock-piece','piece','packed-gift'].includes(type)){
+      pointer.box=root.querySelector('.counter-scene [data-box]');
+      pointer.gift=state.active.stage==='gifts';
+      (bay||el).setPointerCapture(e.pointerId);
+    }
     if(type==='tear'){pointer.tearDistance=Math.max(1,el.clientWidth*.58);el.setPointerCapture(e.pointerId);}
   });
   function savePartial(p,val){
@@ -432,15 +445,23 @@
     if(!p.el.isConnected)return;
     if(p.type==='tear'){
       p.el.style.setProperty('--cut',p.last*100+'%');
-    }else if(p.type==='stock-piece'){
+    }else if(p.box){
       if(!p.ghost){
-        const sprite=p.el.querySelector('img');if(!sprite)return;
+        const sprite=p.el.querySelector('img,.rack-preview');
+        if(!sprite)return;
         const rect=sprite.getBoundingClientRect();
-        p.ghost=sprite.cloneNode();p.ghost.className='stock-flight held';p.ghost.setAttribute('aria-hidden','true');
+        p.ghost=new Image();
+        if(sprite.tagName==='IMG')p.ghost.src=sprite.src;
+        else {
+          const goods=goodsVal(p.el.dataset.val);
+          p.ghost.src='assets/items/'+goods.color+'-'+goods.kind+'-'+goods.variant+'.png';
+        }
+        p.ghost.className='stock-flight held';p.ghost.setAttribute('aria-hidden','true');
         Object.assign(p.ghost.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px'});
-        document.body.append(p.ghost);p.el.classList.add('dragging');
+        document.body.append(p.ghost);p.el.classList.add('lifted');
       }
       p.ghost.style.transform=`translate3d(${p.dx}px,${p.dy}px,0)`;
+      p.box.classList.toggle('drop-hover',overParcel(p,p.x+p.dx,p.y+p.dy));
     }else{
       p.el.classList.add('dragging');p.el.style.setProperty('--dx',p.dx+'px');p.el.style.setProperty('--dy',p.dy+'px');
     }
@@ -457,12 +478,24 @@
     }
     if(!p.frame)p.frame=requestAnimationFrame(()=>drawDrag(p));
   });
+  function overParcel(p,x,y){
+    const rect=p.box.getBoundingClientRect();
+    const pad=12;
+    return x>=rect.left-pad && x<=rect.right+pad && y>=rect.top-pad && y<=rect.bottom+pad;
+  }
   function finishPointer(e,cancelled=false){
     const p=pointer;if(!p||p.id!==e.pointerId)return;pointer=null;
     if(p.frame)cancelAnimationFrame(p.frame);
     const dropped=p.ghost?.getBoundingClientRect();
     const spoonDrop=p.type==='scoop-pour'?p.el.querySelector('.loaded-spoon')?.getBoundingClientRect():null;
+    const held=p.type==='stock-piece' && ignoreStockClick;
     p.ghost?.remove();
+    if(p.box){
+      p.box.classList.remove('drop-hover');p.el.classList.remove('lifted');
+      // iOS can deliver the last few pixels only in the release event.
+      p.moved ||= !cancelled && Math.hypot(e.clientX-p.x,e.clientY-p.y)>=5;
+      if(p.moved){counterTap=null;ignoreStockClick=true;}
+    }
     if(p.type==='tear'){
       if(p.moved)draggedElement=p.el;
       if(!p.finished && p.last>p.start){drawDrag(p);savePartial(p,p.last);}
@@ -471,7 +504,7 @@
     if(!p.moved)return;
     draggedElement=p.el;
     p.el.classList.remove('dragging');p.el.style.removeProperty('--dx');p.el.style.removeProperty('--dy');
-    if(cancelled || (p.type==='stock-piece' && ignoreStockClick))return;
+    if(cancelled || held)return;
     const target=document.elementFromPoint(e.clientX,e.clientY);
     if(p.type==='scoop-pour'){
       if(target?.closest('[data-pour-tray]') && state.active?.id===p.order && state.active.stage==='drawn')
@@ -483,18 +516,27 @@
         queue(()=>act('photo',''));
       return;
     }
-    if(p.type==='stock-piece'){
-      if(target?.closest('[data-box],.parcel-space') && state.active?.id===p.order && state.active?.current===p.current)
-        queue(()=>takeFromRack(goodsVal(p.el.dataset.val),dropped));
-      return;
-    }
-    if(p.type==='piece'){
-      if(!p.el.isConnected)return;
-      const rect=p.el.closest('.box-interior').getBoundingClientRect();
+    if(p.box){
+      if(!target || !p.box.isConnected || !p.el.isConnected)return;
+      const inside=overParcel(p,e.clientX,e.clientY);
+      const val=p.el.dataset.val;
+      const rect=p.box.querySelector('.box-interior')?.getBoundingClientRect();
+      if(!rect)return;
       const fraction=v=>Math.max(0,Math.min(1,v));
-      const placement={bag:Number(p.el.dataset.bag),index:Number(p.el.dataset.index),
-        x:fraction((e.clientX-rect.left)/rect.width),y:fraction((e.clientY-rect.top)/rect.height)};
-      queue(async()=>{if(state.active?.id===p.order && await change('position',placement))sound('place');});
+      const position={x:fraction((e.clientX-rect.left)/rect.width),y:fraction((e.clientY-rect.top)/rect.height)};
+      queue(async()=>{
+        if(local.page!=='play' || local.modals.length || state.active?.id!==p.order ||
+          state.active.current!==p.current || !p.el.isConnected || !p.box.isConnected)return;
+        if(p.type==='stock-piece'){
+          if(!inside)return;
+          if(p.gift)await act('gift-add',val);
+          else await takeFromRack({...goodsVal(val),position},dropped,true);
+        }else if(!inside){
+          await act(p.type==='piece'?'return-piece':'gift-return',val);
+        }else if(p.type==='piece'){
+          if(await change('position',{bag:Number(p.el.dataset.bag),index:Number(p.el.dataset.index),...position}))sound('place');
+        }
+      });
       return;
     }
     if(p.type==='seal'&&target?.closest('[data-dropseal]'))queue(()=>act('seal',''));

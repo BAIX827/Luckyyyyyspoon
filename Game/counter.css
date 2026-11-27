@@ -109,7 +109,7 @@
 .reveal-prop .wrapper{position:absolute;bottom:0;width:83%;height:62%;z-index:1}.drawn-card{position:absolute;top:0;left:27%;width:51%;height:66%;display:grid;place-items:center;padding:4px;background:#fff4d4;border:2px solid #9a7456;transform:rotate(-5deg);animation:draw-card .24s steps(5,end)}
 .drawn-card img{width:85%;height:100%;min-height:0;object-fit:contain}.drawn-card b{position:absolute;right:-9%;top:0;font-size:.85em;background:#ffe5ae;border:1px solid #987052;padding:0 3px}
 @keyframes draw-card{from{translate:0 24%}}
-.parcel-space{container-type:size}.parcel{position:relative;width:min(100%,114cqh);height:auto;aspect-ratio:205/179;align-self:end}
+.parcel-space{container:parcel-station / size}.parcel{position:relative;width:min(100%,114cqh);height:auto;aspect-ratio:205/179;align-self:end}
 .parcel.sealed{aspect-ratio:205/168;width:min(100%,122cqh)}
 .parcel .dispatch-card{position:absolute;z-index:1;left:12%;top:16%;width:32%;font-size:clamp(8px,1.15vw,14px);padding:.3em .45em;transform:rotate(-4deg);border-width:2px}
 .parcel .dispatch-card>small:last-child{display:none}.parcel>.physical-prop{position:absolute;inset:0}
@@ -123,7 +123,8 @@
 .parcel-item,.parcel-gift{position:absolute;padding:0;touch-action:none;transform:translate(-50%,-50%);width:25%;height:48%;opacity:1!important}.parcel-gift{transform:none;bottom:0;width:20%;height:40%;background:#ffe8c6;border:1px dashed #ad8069}
 .counter-item{width:100%;height:100%;object-fit:contain;pointer-events:none}
 .parcel-item.misfit{outline:2px dashed #c0574b;outline-offset:-2px;background:#f9d9cf99}
-.parcel-item.dragging{z-index:110!important;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy)))!important}
+.parcel-item.lifted img,.parcel-gift.lifted img,.rack-slot.lifted img,.rack-slot.lifted .rack-preview{opacity:.25}
+.parcel.drop-hover{filter:drop-shadow(0 0 2px #fff2ae)}
 .box-action{position:absolute;z-index:2;bottom:1%;left:50%;transform:translateX(-50%);background:#d6e5bc;border-color:#668562;color:#2e503a;box-shadow:inset 0 -3px #abc292,2px 2px #637654;min-height:44px;font-weight:800;padding:0 1.1em}
 .postage-sticker,.dispatch-card{align-self:center;display:grid;justify-items:center;gap:.3em;background:#fff4d7;border:3px dashed #bd886b;padding:.6em 1em;text-align:center;transform:rotate(-5deg)}
 .postage-sticker{touch-action:none}.dispatch-card{gap:0}.dispatch-card small{font-size:.7em}.barcode{width:100%;height:.6em;margin:.4em 0;background:repeating-linear-gradient(90deg,#6c584b 0 2px,transparent 2px 4px,#6c584b 4px 5px,transparent 5px 7px)}
@@ -217,7 +218,7 @@
 .shelf-edge{height:13%;min-height:3px;border-top:1px solid #e7bb86;border-bottom:2px solid #81533b}
 .cabinet-base{position:relative;display:grid;place-items:center;flex:none;height:9%;min-height:18px;border-bottom:3px solid #79513e}
 .cabinet-base span{padding:0 .75em;color:#634430;background:#fbe1b5;border:1px solid #996d50;box-shadow:1px 1px #956748;font-size:clamp(11px,1.15vw,17px);font-weight:750;line-height:1.2}
-.bay-hit{position:absolute;z-index:2;inset:0;width:100%;height:100%;padding:0;background:transparent;outline-offset:-5px}
+.bay-hit{touch-action:none;position:absolute;z-index:2;inset:0;width:100%;height:100%;padding:0;background:transparent;outline-offset:-5px}
 .bay-hit:focus-visible{outline:3px solid #fff4c6;box-shadow:inset 0 0 0 6px #8a7554}
 .rack-slot{position:relative;flex:1;min-width:0;min-height:0;display:grid;place-items:end center;padding:0;border:0;background:none}
 .rack-slot img{width:90%;height:89%;position:absolute;bottom:1%;object-fit:contain;object-position:center bottom}
@@ -238,7 +239,7 @@
 .rack-slot small{position:absolute;bottom:0;right:0;z-index:2;background:#fff0cd;color:#634936;border:1px solid #af8965;padding:0 2px;font:700 clamp(10px,1.1vw,14px)/1.15 monospace;opacity:0}
 .rack-slot small.count-changed,.rack-slot:focus-visible small{opacity:1}
 @media(hover:hover){.rack-slot:hover small{opacity:1}}
-.rack-slot.dragging img{opacity:.28}.stock-flight.held{z-index:100}
+.stock-flight.held{z-index:100}
 
 /* The cloth and the wood occupy separate surfaces, including in the sample book. */
 [data-desk="walnut"] .table-surface{background-color:#926c55;background-blend-mode:multiply}
@@ -451,8 +452,15 @@
 
 .chapter-crown{display:flex;align-items:center;gap:4px;margin:0 0 .6em;padding:.45em .5em;background:#fbe7a8;border:2px solid #c69a3c;color:#6b4a17;font-size:.84em}
 .receipt-fixes{border-top:1px dashed #bc9575}.receipt-fixes .receipt-line p{color:#8a3a33}
-/* Keep the open lid clear for the action so it never covers goods in the box. */
-.counter-scene:not([data-stage="seal"]) .parcel-space .box-action{bottom:auto;top:3%}
+/* Keep the entire open box available for fingers, including on short screens. */
+.counter-scene:not([data-stage="seal"]) .parcel-space .box-action{
+  bottom:calc(min(100cqh,87.4cqw) + 3px);top:auto;white-space:nowrap
+}
+@container parcel-station (min-aspect-ratio: 3/1) and (min-width: 270px){
+  .counter-scene:not([data-stage="seal"]) .parcel-space .box-action{
+    left:calc(50% + 57cqh + 5px);bottom:5%;transform:none;padding-inline:.55em
+  }
+}
 /* Short phone screens: the order slip stays inside the desk instead of covering the shelf base. */
 @media (max-height:440px){
   [data-camera="wide"] .counter-note{align-self:end;max-height:100%}

@@ -113,3 +113,20 @@ test('100 orders can ship through the landscape counter, including repositioning
   const old=C.copy(g.state);delete old.settings.music;
   assert.equal(C.decode(JSON.stringify(old)).settings.music,true);
 });
+
+test('dropping from another bay, repositioning and returning preserve the bag and shelf counts',()=>{
+  const g=counter();
+  g.act('start-level',1);g.open(0);
+  const kind=C.kinds.findIndex((k,i)=>C.isStocked(g.order,i)&&k.drawer!==g.order.drawer);
+  const goods={kind,color:'pink',variant:0}, initial=C.remaining(g.order,goods);
+  g.blocked('add-piece',goods);
+  g.act('rack-drop',{...goods,position:{x:.4,y:.6}});
+  g.act('position',{bag:0,index:0,x:.6,y:.3});
+  const saved=C.decode(JSON.stringify(g.state));
+  assert.deepEqual(saved.active.bags[0].pieces[0].position,{x:.6,y:.3});
+  assert.equal(C.remaining(saved.active,goods),initial-1);
+  g.act('return-piece',{bag:0,index:0});
+  assert.equal(C.remaining(g.order,goods),initial);
+  g.blocked('return-piece',{bag:0,index:0});
+  g.act('undo');assert.equal(C.remaining(g.order,goods),initial-1);
+});

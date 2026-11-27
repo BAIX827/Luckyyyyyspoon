@@ -101,7 +101,7 @@ window.LuckyCounter = (() => {
           return `<span class="${cls}" data-val="${key}"><i class="rack-preview${mounted?' on-rail':''}${mounted&&variant?' twisted':''}"></i></span>`;
         }
         return button(stock.gift?'gift-add':'add-piece',stockArt(g)+`<small class="${used?'count-changed':''}">×${left}</small>`,
-          cls,key,`aria-label="${label(g)}，库存${left}" ${offered&&stock.picking&&left?'':'disabled'} ${stock.gift?'':'data-drag="stock-piece"'}`);
+          cls,key,`aria-label="${label(g)}，库存${left}" ${offered&&stock.picking&&left?'':'disabled'} data-drag="stock-piece"`);
       }).join('');
       const group=detail?`role="group" aria-label="${style}"`:'';
       const mounted=kind===0||kind===14?' mounted-stock':'';
@@ -137,9 +137,9 @@ window.LuckyCounter = (() => {
       if(a.stage==='photo')return `<span class="parcel-item${wrong}" style="left:${x*100}%;top:${y*100}%;${size}">${item(g)}</span>`;
       return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;${size}" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
     })).join('');
-    const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'':'disabled'}`)).join('');
+    const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'data-drag="packed-gift"':'disabled'}`)).join('');
     const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${num(a.id)}</small></div>`:'';
-    return `<div class="parcel ${sealed?'sealed':''}" data-box>${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${address}${sealed?'':`<div class="parcel-content"><div class="tissue box-interior">${pieces}${bonus}</div></div>${prop('counter/parcel-open.webp','parcel-rim')}`}</div>`;
+    return `<div class="parcel ${sealed?'sealed':''}" data-box role="group" aria-label="礼盒">${prop('counter/parcel-'+(sealed?'closed':'open')+'.webp')}${address}${sealed?'':`<div class="parcel-content"><div class="tissue box-interior">${pieces}${bonus}</div></div>${prop('counter/parcel-open.webp','parcel-rim')}`}</div>`;
   }
 
   function hand(a) {
@@ -274,7 +274,6 @@ window.LuckyCounter = (() => {
           if(slot.disabled!==disabled)slot.disabled=disabled;
           if(modeChanged){
             slot.dataset.act=next.gift?'gift-add':'add-piece';
-            if(next.gift)delete slot.dataset.drag;else slot.dataset.drag='stock-piece';
           }
         }
       }
