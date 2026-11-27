@@ -1,11 +1,13 @@
+@font-face{font-family:"Fusion Pixel";src:url(assets/fonts/fusion-pixel-12.woff2) format("woff2");font-display:block}
+:root{--pixel-font:"Fusion Pixel","PingFang SC","Microsoft YaHei",sans-serif}
 @charset "UTF-8";
 :root {
   color-scheme:light; --ink:#452537; --paper:#fff5df; --cream:#fff9ea; --pink:#f793ab;
   --rose:#964256; --wood:#b87143; --line:#bc8b70; --order-color:#f793ab;
-  font:16px/1.45 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  font:16px/1.45 var(--pixel-font);font-synthesis:none;-webkit-font-smoothing:none;
   color:var(--ink);background:#f1d6b2;
 }
-*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{min-height:100vh;min-height:100dvh;display:grid;place-items:center;
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:clip}body{min-height:100vh;min-height:100dvh;display:grid;place-items:center;
 background-color:#f1d9b8;background-image:linear-gradient(90deg,#cf9a7826 50%,transparent 50%),linear-gradient(#cf9a7826 50%,transparent 50%);background-size:24px 24px}
 button,select{font:inherit;color:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 button:focus-visible,select:focus-visible{outline:3px solid #207787;outline-offset:2px}button:disabled{opacity:.48;cursor:default}

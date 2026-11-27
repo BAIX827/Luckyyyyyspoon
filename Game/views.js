@@ -93,7 +93,7 @@
     const level=C.levels[o.level-1];
     const reaction=customerReply(o,level);
     const stars=C.levelStars(o.satisfaction);
-    const rating=level ? `<span class="order-stars" aria-label="本单 ${stars} 星，满分三星">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</span>` : '';
+    const rating=level ? `<span class="order-stars" aria-label="本单 ${stars} 星，满分三星">${[0,1,2].map(i=>`<i class="${i<stars?'on':''}" style="--n:${i}">★</i>`).join('')}</span>` : '';
     // Only lines that went wrong are listed; a clean box needs no breakdown.
     const rows=o.cards.map(b=>{
       const wrong=new Map();
@@ -184,6 +184,7 @@
     }
     return LuckyFront.home(s);
   }
+  const lessons=s=>['first-order','hold',...C.deliveries.map(d=>'goods-'+d.kind)].filter(key=>!s.learned[key]);
   function dialog(s,l){
     const name=l.modals.at(-1);if(!name)return '';
     let title='',body='';
@@ -192,11 +193,12 @@
     if(name==='pause'){title='暂停打包';body=`<p>订单 ${num(s.active.id)} · ${C.themes[s.active.theme].name} · ${s.active.gifts?'已开':'已装'} ${C.count(s.active)} / 5</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+button('discard-prompt','结束本单并重新接单','text-btn');}
     if(name==='discard'){title='结束这笔订单？';body='<p>这盒还未封箱，本单的小物与收益会一起放弃。</p>'+primary('close','保留本单')+secondary('discard','结束并重新点单');}
     if(name==='help'){title='怎样配好一盒';body=`<ol class="guide"><li><b>先看顾客点的颜色</b><p>撕袋露卡，看清图卡上的品类、数量和目标颜色。</p></li><li><b>货架上六色都有</b><p>点货架上的区域放大，再从架上挑小物。拿错可以撤回，也可以点盒中小物重新配货。</p></li><li><b>五袋揭晓后，挑赠品、贴封签</b><p>每张卡最多 20 分，缺件按比例计入满意度。赠品可送零至两件，单独记入回信。封好关卡订单就能继续下一关。</p></li></ol>`+primary('close','知道了');}
-    if(s.active?.mode==='scoop'&&name==='pause'){title='暂停打包';body=`<p>${s.active.scoopTarget} 勺 · 已倒出 ${s.active.beads.length} 颗 · 已装 ${C.pieceCount(s.active.bags)} 件</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+button('discard-prompt','结束本单并重新接单','text-btn');}
-    if(s.active?.mode==='scoop'&&name==='help'){title='怎样配好一盒';body='<ol class="guide"><li><b>按订单舀珠子</b><p>舀起一勺，倒进盘子，每颗珠子对应一件货。舀完订单上的勺数，再开始配货。</p></li><li><b>看珠子找实物</b><p>点盘里的珠子看对应货品，按客人的偏好配色。可以打开小票上的珠子对照表。点货架区域放大，在原货格取货。</p></li><li><b>装盒寄出</b><p>重复珠子就配多件。配齐后核对装箱，可加零至两件赠品，再贴签寄出。</p></li></ol>'+primary('close','知道了');}
+    if(s.active?.mode==='scoop'&&name==='pause'){title='暂停打包';body=`<p>${s.active.scoopTarget} 勺 · 已倒出 ${s.active.beads.length} 颗 · 已装 ${C.pieceCount(s.active.bags)} 件</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+(lessons(s).length?button('tutorial-off','不再显示操作引导','text-btn'):'')+button('discard-prompt','结束本单并重新接单','text-btn');}
+    if(s.active?.mode==='scoop'&&name==='help'){title='怎样配好一盒';body='<ol class="guide"><li><b>按订单舀珠子</b><p>舀起一勺，倒进盘子，每颗珠子对应一件货。舀完订单上的勺数，再开始配货。</p></li><li><b>看珠子找实物</b><p>点盘里的珠子看对应货品，按客人的偏好配色。可以打开小票上的珠子对照表。点货架区域放大，在原货格取货。</p></li><li><b>装盒寄出</b><p>重复珠子就配多件。配齐后桌上的封签会亮起，把它贴上盒子就封箱寄出。想送赠品，先点盒边的赠品碟，从架上挑零至两件。</p></li></ol>'+primary('close','知道了');}
     if(name==='unlock'){title='解锁完整版';body='<p class="unlock-pitch">第一章十关免费开放。解锁后继续第二到第十章的 90 关，新货随关卡陆续到店。一次购买，永久有效，换设备可用同一 Apple 账户恢复。</p>'+
       primary('purchase',l.storeBusy?'正在连接 App Store…':l.price?'解锁 · '+l.price:'解锁完整版','',!!l.storeBusy)+secondary('restore','恢复购买')+secondary('close','先不用');}
-    if(name==='shortage'){title='还有几样没配齐';body=s.active.bags.filter(b=>b.pieces.length<b.quantity).map(b=>'<p>'+requirement(b)+' · 还差 '+(b.quantity-b.pieces.length)+units[b.kind]+'</p>').join('')+primary('close','回去补货')+secondary('wrap-confirm','照单装盒');}
+    if(name==='shortage'&&s.active.mode==='scoop'){title='这盒还没配好';body=s.active.bags.map(b=>{const wrong=b.pieces.filter(g=>!C.fits(b,g)).length,missing=b.quantity-b.pieces.length+wrong;return missing?'<p>'+requirement(b)+(wrong?' · 拿错 '+wrong+units[b.kind]:'')+(b.quantity>b.pieces.length?' · 还差 '+(b.quantity-b.pieces.length)+units[b.kind]:'')+'</p>':'';}).join('')+primary('close','回去补齐')+secondary('seal-confirm','就这样寄出');}
+    else if(name==='shortage'){title='还有几样没配齐';body=s.active.bags.filter(b=>b.pieces.length<b.quantity).map(b=>'<p>'+requirement(b)+' · 还差 '+(b.quantity-b.pieces.length)+units[b.kind]+'</p>').join('')+primary('close','回去补货')+secondary('wrap-confirm','照单装盒');}
     if(name==='edit'){title='重新配货';body=picker(s.active,l,true)+primary('edit-confirm','替换盒中这件','',!l.editGoods);}
     if(name==='catalog-item'){
       const g=l.catalogItem,id=C.collection(s).get(C.itemKey(g.color,g.kind,g.variant));

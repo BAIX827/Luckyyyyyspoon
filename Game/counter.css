@@ -21,10 +21,10 @@
 .bead-tray {
   display:flex; flex-wrap:wrap; align-content:center; justify-content:center; gap:clamp(3px,.65vw,8px); padding:clamp(9px,1.3vw,18px);
   width:100%; border:2px solid #b88a61; border-bottom-color:#9b704f;
-  border-radius:14px 14px 18px 17px / 10px 10px 14px 14px;
+  border-radius:4px;
   background:linear-gradient(#f6dcb9d9,#f3d5aad9),url(assets/counter/shelf-back.webp) center/150px 90px;
   box-shadow:inset 0 2px #fff0ca,inset 0 4px #c9a279,inset 0 -3px #ffe8be,
-    0 3px #c0946e,0 4px #977151,1px 6px 2px #6b452a45;
+    0 3px #c0946e,0 4px #977151,1px 6px 0 #6b452a30;
 }
 .waiting-tray {min-height:35px; max-height:40%; overflow:auto; pointer-events:auto}
 .pour-prop {touch-action:none}
@@ -37,11 +37,11 @@
 .bead-goods .counter-item {width:100%; height:100%; object-fit:contain; image-rendering:pixelated}
 .bead-pile {position:absolute; left:-2px; top:-2px; z-index:1; display:block; width:clamp(15px,1.9vw,22px); aspect-ratio:1}
 .bead-pile .lucky-bead {position:absolute; inset:0; width:100%}
-.tray-bead>small {position:absolute; right:-3px; bottom:-2px; font:700 10px/1.1 monospace; color:#63493d; background:#fff0c8; padding:1px}
+.tray-bead>small {position:absolute; right:-3px; bottom:-2px; font:700 10px/1.1 var(--pixel-font); color:#63493d; background:#fff0c8; padding:1px}
 .tray-bead.active {border-radius:6px;background:#fff4d6;box-shadow:inset 0 -2px #d3b68b,0 0 0 1px #b0936e}
 .tray-bead.collected::after {content:'✓'; position:absolute; bottom:0; right:0; background:#c8dbaf; color:#365a40; padding:0 2px; font-size:12px; border:1px solid #66794f}
 .tray-bead.collected .bead-goods {opacity:.45}
-.tray-bead.misfit::after {content:'!'; position:absolute; bottom:0; right:0; background:#f3c4b8; color:#8a3a33; padding:0 4px; font:800 12px/1.2 monospace; border:1px solid #9d5148}
+.tray-bead.misfit::after {content:'!'; position:absolute; bottom:0; right:0; background:#f3c4b8; color:#8a3a33; padding:0 4px; font:800 12px/1.2 var(--pixel-font); border:1px solid #9d5148}
 .misfit-count {font-style:normal; font-size:.72em; color:#8a3a33; background:#f9d9cf; border:1px solid #c98576; padding:0 4px; white-space:nowrap}
 .has-misfit em strong {color:#9d4a3f}
 .loaded-spoon {position:relative; width:80%; min-height:75px; flex:1; display:grid; place-items:center; padding-bottom:18px}
@@ -80,7 +80,7 @@
   border-radius:2px;box-shadow:inset 0 -3px #dcc3a3,2px 2px #73503a;padding:4px 10px;font-weight:750;
 }
 .pixel-tool{width:44px;height:44px;padding:0;font-size:1.5rem}.utility-label{min-height:44px;font-size:.9em}
-.counter-desk{position:absolute;left:max(5%,calc(var(--safe-left) + 4px));right:max(5%,calc(var(--safe-right) + 4px));top:calc(var(--wall-height) + 1%);bottom:max(3.5%,calc(var(--safe-bottom) + 4px));display:grid;grid-template-columns:25% 25% minmax(0,1fr);gap:4%;align-items:end;pointer-events:none}
+.counter-desk{position:absolute;z-index:1;left:max(5%,calc(var(--safe-left) + 4px));right:max(5%,calc(var(--safe-right) + 4px));top:calc(var(--wall-height) + 1%);bottom:max(3.5%,calc(var(--safe-bottom) + 4px));display:grid;grid-template-columns:25% 25% minmax(0,1fr);gap:4%;align-items:end;pointer-events:none}
 .counter-desk>*{min-width:0;min-height:0}.counter-desk button,.parcel,.dispatch-card{pointer-events:auto}
 .counter-note{align-self:center;width:100%;max-width:318px;justify-self:center}
 .ticket-paper,.street-ticket,.reply-paper{
@@ -95,7 +95,7 @@
 .bag-marks{border-top:1px dashed #ba9d7e;padding-top:.4em;justify-content:space-between;gap:3px}
 .ticket-mark{height:clamp(17px,3.6vh,32px);width:18%;display:grid;place-items:center;position:relative}
 .ticket-mark img{height:100%;max-width:100%;object-fit:contain}.ticket-mark:not(.opened){opacity:.45}.ticket-mark.reading{background:#f2dab3}
-.ticket-mark.filled::after{content:'✓';position:absolute;right:0;bottom:-.15em;color:#29533e;background:#dfedcd;font:800 .8em/1 sans-serif}
+.ticket-mark.filled::after{content:'✓';position:absolute;right:0;bottom:-.15em;color:#29533e;background:#dfedcd;font:800 .8em/1 var(--pixel-font)}
 .completed .slip-wish em{color:#315c45}
 .expanded-lines{display:grid}.note-line{display:flex;align-items:center;gap:10px;text-align:left;min-height:44px;padding:5px 2px;border-bottom:1px dashed #ccb393}.note-line>img{width:29px;height:29px;object-fit:contain}.note-line em{margin-left:auto;white-space:nowrap;font-style:normal}.note-line:disabled{opacity:.8}
 .hand-space,.parcel-space{height:100%;position:relative;display:grid;align-items:end;justify-items:center;min-height:0;grid-template-rows:minmax(0,1fr)}
@@ -194,7 +194,7 @@
 .counter-scene{--wall-height:65dvh;--near-height:78dvh;--canopy-height:max(46px,calc(var(--wall-height) * .09))}
 [data-camera="wide"] .rack-back{display:none}
 [data-camera="near"] .table-surface{top:var(--near-height)}
-.stockroom{position:absolute;inset:0 0 auto;height:var(--near-height);overflow:hidden;pointer-events:none;image-rendering:pixelated}
+.stockroom{position:absolute;inset:0 0 auto;height:var(--near-height);overflow:hidden;pointer-events:none;image-rendering:pixelated;isolation:isolate}
 .shop-canopy{position:absolute;inset:0 0 auto;z-index:1;height:var(--canopy-height);background:#a78282 url(assets/counter/studio.webp) center 2% / 100% auto no-repeat}
 .aisle-window{position:absolute;inset:0;overflow:hidden}
 .shelf-world{position:absolute;left:0;top:var(--canopy-height);pointer-events:auto;transform:translateZ(0);width:100%;height:calc(var(--wall-height) - var(--canopy-height));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:minmax(0,1fr)}
@@ -202,10 +202,9 @@
 .shelf-bay:nth-child(3){grid-area:1/3}.shelf-bay:nth-child(4){grid-area:1/4}
 .shelf-bay.bay-detail{position:absolute;inset:max(48px,calc(var(--safe-top) + 48px)) 0 0;z-index:2}
 .bay-detail.inspected{pointer-events:auto}
-.bay-detail{will-change:transform,opacity}
-.bay-detail:not(.inspected):not(.camera-moving){opacity:0}
+.shelf-bay.bay-detail[hidden]{display:none}
 .bay-detail[inert]{pointer-events:none}
-.shelf-bay.camera-moving{z-index:3}
+.shelf-bay.camera-moving{z-index:3;will-change:transform}
 .shelf-bay{position:relative;transform-origin:0 0;contain:layout paint;min-width:0;min-height:0;display:flex;flex-direction:column;isolation:isolate;background:#965f41 url(assets/counter/shelf-back.webp) center / 200px 130px}
 .cabinet-crown{height:12%;flex:none;background:url(assets/counter/cabinet-crown.webp) center / 100% 100% no-repeat}
 .shelf-bay::before,.shelf-bay::after{content:'';position:absolute;z-index:1;top:8%;bottom:0;width:3.3%;background:url(assets/counter/cabinet-post.webp) center / 100% 100% no-repeat;pointer-events:none}
@@ -236,7 +235,7 @@
 .holes .cubby-stock::after{content:'';position:absolute;z-index:1;pointer-events:none;left:3%;right:3%;bottom:0;height:16%;background:#c4dadc4a;border:1px solid #c0d2c28c}
 .stock-cubby.off-sale :is(.counter-item,.rack-preview){opacity:.32}
 .rack-slot{touch-action:none}.rack-slot:disabled{opacity:1}.rack-slot:enabled:active img{translate:0 -3%}
-.rack-slot small{position:absolute;bottom:0;right:0;z-index:2;background:#fff0cd;color:#634936;border:1px solid #af8965;padding:0 2px;font:700 clamp(10px,1.1vw,14px)/1.15 monospace;opacity:0}
+.rack-slot small{position:absolute;bottom:0;right:0;z-index:2;background:#fff0cd;color:#634936;border:1px solid #af8965;padding:0 2px;font:700 clamp(10px,1.1vw,14px)/1.15 var(--pixel-font);opacity:0}
 .rack-slot small.count-changed,.rack-slot:focus-visible small{opacity:1}
 @media(hover:hover){.rack-slot:hover small{opacity:1}}
 .stock-flight.held{z-index:100}
@@ -313,7 +312,7 @@
 .bay-detail .bay-stock{padding:0;grid-template-rows:repeat(4,minmax(44px,1fr));overflow-y:auto;overscroll-behavior:contain}
 .bay-detail .cabinet-base{height:6%;min-height:16px}
 [data-camera="near"] .counter-desk{grid-template-columns:30% 20% minmax(0,1fr);top:calc(var(--near-height) + 1%);bottom:max(2%,var(--safe-bottom))}
-[data-camera="near"] .ticket-paper{gap:0;padding:4px 8px}
+[data-camera="near"] .ticket-paper{gap:0;padding:4px 8px;pointer-events:auto}
 [data-camera="near"] .slip-head{padding:0}[data-camera="near"] .bag-marks{display:none}
 [data-camera="near"] .scoop-prop,[data-camera="near"] .reveal-prop{display:none}
 [data-camera="near"] .counter-note{align-self:center}
@@ -344,22 +343,22 @@
   .ticket-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-top:1px dashed #ba9d7e}
   .ticket-tab{display:grid;place-items:center;min-height:44px;padding:2px 0}
   .ticket-tab img{width:23px;height:23px;object-fit:contain}
-  .ticket-tab em{font:700 12px/1.1 sans-serif}
+  .ticket-tab em{font:700 12px/1.1 var(--pixel-font)}
   .counter-note{min-width:240px}
 }
 
 .in-game-tutorial {position:absolute; inset:0; z-index:8; pointer-events:none; color:#fff5d8}
 .tutorial-caption {
-  position:absolute; top:max(12px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%);
-  padding:7px 19px 9px; background:#4c303ddb; max-width:58%;
-  clip-path:polygon(5px 0,calc(100% - 5px) 0,calc(100% - 5px) 3px,100% 3px,100% calc(100% - 3px),calc(100% - 5px) calc(100% - 3px),calc(100% - 5px) 100%,5px 100%,5px calc(100% - 3px),0 calc(100% - 3px),0 3px,5px 3px);
+  position:absolute; max-width:min(64%,420px); padding:5px 10px 6px; background:#fff0c8; color:#5b3f31;
+  border:2px solid #7a5641; box-shadow:2px 2px #7a5641;
 }
-.tutorial-caption p {margin:0; font-size:clamp(14px,1.7vw,20px); line-height:1.35; font-weight:800; letter-spacing:.04em; white-space:nowrap}
-.skip-lesson {
-  position:absolute; top:max(9px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right));
-  min-height:44px; pointer-events:auto; padding:6px 10px; border:0; background:#4c303dba;
-  color:#fff2cf; font-size:12px; line-height:1.2;
-}
+.tutorial-caption[hidden] {display:none}
+.tutorial-caption p {margin:0; font-size:clamp(13px,1.5vw,17px); line-height:1.3; font-weight:700; letter-spacing:.02em; white-space:nowrap}
+.tutorial-caption::after {content:''; position:absolute; width:6px; height:6px; background:#fff0c8; border:solid #7a5641; border-width:0 2px 2px 0}
+.tutorial-caption[data-side="above"]::after {left:var(--tip); bottom:-5px; transform:translateX(-50%) rotate(45deg)}
+.tutorial-caption[data-side="below"]::after {left:var(--tip); top:-5px; transform:translateX(-50%) rotate(225deg)}
+.tutorial-caption[data-side="right"]::after {top:var(--tip); left:-5px; transform:translateY(-50%) rotate(135deg)}
+.tutorial-caption[data-side="left"]::after {top:var(--tip); right:-5px; transform:translateY(-50%) rotate(-45deg)}
 .tutorial-halo {
   position:absolute; transform:translate(-50%,-50%); border:2px solid #fff5b8; border-radius:50%;
   box-shadow:0 0 0 3px #ffd36e66; animation:guide-halo 1.9s ease-out infinite;
@@ -401,7 +400,7 @@
 .order-scoops {display:flex; align-items:center; justify-content:center; gap:6px}
 .order-scoops>.icon {width:clamp(45px,5vw,68px); height:clamp(45px,5vw,68px); flex:none}
 .order-scoops>span {display:flex; align-items:baseline; gap:5px; color:#653e44}
-.order-scoops b {font:900 clamp(44px,5.8vw,76px)/1 Consolas,monospace}
+.order-scoops b {font:900 clamp(44px,5.8vw,76px)/1 var(--pixel-font)}
 .order-scoops small {font-size:clamp(13px,1.35vw,19px); font-weight:800; white-space:nowrap}
 .order-color {display:grid; justify-items:center; gap:4px; border-left:2px dotted #c7ad87; color:#654743}
 .order-color small {font-size:12px; color:#8b7057}
@@ -417,13 +416,13 @@
 .scoop-ticket .slip-head b {font-size:1em; color:#684248}
 .scoop-order-strip {display:flex; align-items:center; justify-content:space-between; gap:7px; padding:2px 0}
 .scoop-order-strip>span {display:flex; align-items:center; gap:4px; white-space:nowrap}
-.scoop-order-strip>span>b {font:900 1.35em/1 Consolas,monospace; color:#664149}
-.scoop-order-strip b small {font:700 .6em/1.2 "Microsoft YaHei",sans-serif}
+.scoop-order-strip>span>b {font:900 1.35em/1 var(--pixel-font); color:#664149}
+.scoop-order-strip b small {font:700 .6em/1.2 var(--pixel-font)}
 .scoop-order-strip .scoop-preference {font-size:.76em; color:#79594c}
 .scoop-current {min-height:44px; gap:6px; border-top:1px dashed #d1b693; border-bottom:1px dashed #d1b693; background:#f8e6c7; padding:3px 5px; color:#644443}
 .scoop-current img {width:32px; height:36px; flex:none}
 .scoop-current b {font-size:.86em}
-.scoop-current em {font:500 .85em/1 Consolas,monospace; white-space:nowrap; color:#94745d}
+.scoop-current em {font:500 .85em/1 var(--pixel-font); white-space:nowrap; color:#94745d}
 .scoop-current em strong {font-size:1.4em; color:#4c6d55}
 .scoop-ticket-foot {display:flex; align-items:center; justify-content:space-between; gap:3px}
 .scoop-ticket-foot .scoop-tally {font-size:.72em; white-space:nowrap; color:#876b54}
@@ -513,3 +512,99 @@
 .order-front .order-letter{transform:translateY(-50%) rotate(-1deg);overflow:auto}
 .order-letter .order-stub{color:#63493b;background:transparent;box-shadow:none;border-bottom:2px dashed #c6a47b;margin:0}
 @media(orientation:portrait){.delivery-front .mail-envelope{width:80%;bottom:3%;right:6%}.delivery-front .reply-paper{bottom:6%}}
+
+/* ---- Quiet guidance and the one-object ending ---------------------------------------- */
+/* The hand and its halo are the whole lesson; the halo steps like the rest of the art. */
+.tutorial-halo {border-radius:35%; animation-timing-function:steps(4,end)}
+
+/* Seal sticker: lies on the desk beside the box. Dim while the box is short, then bobs. */
+.desk-seal {
+  position:absolute; z-index:3; left:1%; bottom:4%; display:grid; justify-items:center; gap:1px;
+  min-width:58px; min-height:58px; padding:6px 8px 5px; touch-action:none;
+  background:#fff4d7; color:#6b4a3a; border:2px dashed #bd886b; outline:2px solid #fff4d7;
+  box-shadow:3px 3px #8a654c; transform:rotate(-7deg); font-size:clamp(10px,1.1vw,14px); font-weight:800; line-height:1.1
+}
+.desk-seal .sticker-name {white-space:nowrap}
+.desk-seal.waiting {opacity:.62; filter:saturate(.55); box-shadow:2px 2px #8a654c88}
+.desk-seal.ready {animation:sticker-bob 1.2s steps(2,end) infinite}
+.gift-dots {display:flex; gap:3px; font-style:normal}
+.gift-dots b {width:7px; height:7px; background:#e5d3b6; box-shadow:inset 0 0 0 1px #a98466}
+.gift-dots b.on {background:var(--order-color,#e48aa0)}
+@keyframes sticker-bob {50% {translate:0 -4px}}
+[data-camera="near"] .desk-seal {min-width:46px; min-height:46px; padding:3px 5px; left:0; bottom:2%}
+[data-camera="near"] .desk-seal .sticker-name {display:none}
+
+/* Delivery slip: a paper note clipped beside the order ticket while the new goods are fresh. */
+.arrival-tag {
+  position:absolute; z-index:4; display:flex; align-items:center; gap:5px;
+  padding:3px 9px 3px 4px; background:#e3e8c9; color:#43533c; border:2px solid #7f8a66; box-shadow:2px 2px #7f8a66;
+  transform:rotate(4deg); pointer-events:none; animation:slip-in .36s steps(4,end) both
+}
+.arrival-tag img {width:28px; height:28px; object-fit:contain}
+.arrival-tag span {display:grid; line-height:1.1}.arrival-tag small {font-size:.68em}.arrival-tag b {font-size:.86em}
+@keyframes slip-in {from {translate:0 30%; opacity:0}}
+[data-camera="near"] .arrival-tag {display:none}
+.stock-cubby.fresh-stock .cubby-stock {position:relative}
+.stock-cubby.fresh-stock .cubby-stock::after {
+  content:''; position:absolute; right:6%; top:6%; width:9px; height:9px; pointer-events:none;
+  background:linear-gradient(#fff6b8,#fff6b8) center/3px 100% no-repeat,linear-gradient(#fff6b8,#fff6b8) center/100% 3px no-repeat;
+  filter:drop-shadow(1px 1px #b07a2c); animation:twinkle 1.2s steps(2,end) infinite
+}
+@keyframes twinkle {50% {opacity:.15; scale:.6}}
+
+/* A wrong colour wobbles instead of being boxed in red; one tap still sends it back. */
+.parcel-item.misfit {outline:0; background:transparent; animation:misfit-wobble 1.6s steps(2,end) infinite}
+.parcel-item.misfit::after {
+  content:''; position:absolute; right:4%; top:2%; width:8px; height:8px; background:#f2b36b;
+  box-shadow:0 0 0 2px #fff4d7, 0 0 0 3px #a66a3c
+}
+@keyframes misfit-wobble {0%,60% {rotate:0deg} 70% {rotate:-6deg} 85% {rotate:5deg}}
+.misfit-count {background:#fbe6c8; color:#8a5a2d; border-color:#d4a266}
+.tray-bead.misfit::after {background:#fbe6c8; color:#8a5a2d; border-color:#c99a5f}
+
+/* Picking close-up: the box stays in the foreground instead of shrinking into a corner. */
+[data-camera="near"] .parcel-space {height:calc(100% + 5dvh); align-self:end}
+[data-camera="near"] .parcel {filter:drop-shadow(0 4px 0 #5e3b2a55)}
+@media (orientation:portrait) {[data-camera="near"] .parcel-space {height:100%}}
+
+/* The seal: closed box, label pressed on, shop stamp. */
+.parcel-stamp {position:absolute; z-index:3; right:14%; bottom:18%; width:22%; aspect-ratio:1; display:grid; place-items:center;
+  border:3px solid #c25b6e; background:#fff1d8cc; rotate:-12deg; box-shadow:inset 0 0 0 2px #fff1d8}
+.parcel-stamp img {width:70%; height:auto}
+.counter-scene[data-transferring="seal"] .desk-seal {visibility:hidden}
+
+@media (prefers-reduced-motion:reduce) {
+  .desk-seal.ready,.arrival-tag,.stock-cubby.fresh-stock .cubby-stock::after,.parcel-item.misfit {animation:none}
+}
+
+/* Stars on the reply are stamped one after another in the shop's ink. */
+.reply-paper .order-stars {display:inline-flex; gap:2px; font-size:1.55em; border-color:#c98b8f; color:#c25b6e}
+.order-stars i {font-style:normal; color:#dccbb0; display:inline-block}
+.order-stars i.on {color:#c25b6e; text-shadow:1px 1px #fff1d8; animation:star-stamp .28s steps(4,end) both; animation-delay:calc(.45s + var(--n) * .24s)}
+@keyframes star-stamp {from {scale:2.3; opacity:0} 60% {scale:.85; opacity:1}}
+@media (prefers-reduced-motion:reduce) {.order-stars i.on {animation:none}}
+
+/* Gift dish: optional, sits on the desk at the other side of the box. */
+.gift-dish {
+  position:absolute; z-index:3; right:1%; bottom:4%; display:grid; justify-items:center; gap:1px;
+  min-width:52px; min-height:52px; padding:4px 6px 5px; color:#6b4a3a; font-size:clamp(10px,1.05vw,13px); font-weight:800; line-height:1.1;
+  background:#f3e3c4; border:2px solid #9b7356; border-radius:50% 50% 10px 10px / 30% 30% 10px 10px; box-shadow:inset 0 -4px #d8bd94,2px 2px #8a654c
+}
+.gift-dish img {width:26px; height:26px; object-fit:contain}
+.gift-dish:disabled {opacity:1; cursor:default}
+.gift-dish.open {background:#fff0d0; box-shadow:inset 0 -4px #e8cfa4,0 0 0 2px #fff4d7,2px 2px #8a654c}
+.gift-dish.open img {display:none}
+[data-camera="near"] .gift-dish {min-width:44px; min-height:44px; padding:2px 4px}
+[data-camera="near"] .gift-dish span {display:none}
+.counter-scene[data-stage="seal"] .gift-dish {display:none}
+/* Sticker and dish grow with the counter on tablets. */
+.desk-seal,.gift-dish {min-width:clamp(52px,6.4vw,86px); min-height:clamp(52px,6.4vw,86px)}
+.desk-seal img {width:clamp(26px,3.3vw,44px); height:auto}
+.gift-dish img {width:clamp(24px,3vw,40px); height:auto}
+/* With the 12px pixel floor, short phones keep the slip to one line per row. */
+.scoop-tally,.bead-legend-link span{white-space:nowrap}
+@media (max-height:440px){
+  .bead-legend-link span{display:none}
+  [data-camera="wide"] .scoop-ticket{line-height:1.15}
+}
+.album-card small,.reply-paper p,.dialog p{text-wrap:balance}

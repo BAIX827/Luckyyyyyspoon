@@ -34,12 +34,12 @@ window.LuckyCounter = (() => {
   function receipt(a, expanded=false) {
     if(a.mode==='scoop'){
       if(expanded)return '<div class="expanded-lines">'+a.bags.map((b,i)=>
-        button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em>${b.pieces.length}/${b.quantity}</em>`,
+        button('station-card',bead(b)+item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em>${b.pieces.length-misfits(b)}/${b.quantity}</em>`,
           'note-line'+(misfits(b)?' has-misfit':''),i,`style="--tag-paper:${C.themes[b.color].pale}" ${i===a.current?'aria-current="true"':''} ${['scoop','drawn','gifts','seal'].includes(a.stage)?'disabled':''}`)).join('')+'</div>';
-      const b=a.bags[a.current], packed=C.pieceCount(a.bags);
+      const b=a.bags[a.current], packed=a.bags.reduce((sum,bag)=>sum+bag.pieces.length-misfits(bag),0);
       return `<div class="ticket-paper scoop-ticket"><span class="binder"></span><span class="slip-head"><b>${a.customer}</b><small>${a.level?C.levelName(a.level):'#'+num(a.id)}</small></span>
         <div class="scoop-order-strip"><span>${icon('spoon',24)}<b>${a.scoopTarget}<small> 满勺</small></b></span><span class="scoop-preference">${icon(a.theme,21)}${C.themes[a.theme].name}</span></div>
-        ${b?button('ticket-zoom',item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em><strong>${b.pieces.length}</strong>/${b.quantity}</em>`,'scoop-current'+(misfits(b)?' has-misfit':''),'','aria-label="'+C.kinds[b.kind].name+'，已装'+b.pieces.length+'件，共需'+b.quantity+'件'+(misfits(b)?'，其中拿错'+misfits(b)+'件':'')+'，查看配货单"'):''}
+        ${b?button('ticket-zoom',item({...b,variant:0})+`<b>${C.kinds[b.kind].name}</b>${misfits(b)?`<i class="misfit-count">拿错 ${misfits(b)}</i>`:''}<em><strong>${b.pieces.length-misfits(b)}</strong>/${b.quantity}</em>`,'scoop-current'+(misfits(b)?' has-misfit':''),'','aria-label="'+C.kinds[b.kind].name+'，已装'+(b.pieces.length-misfits(b))+'件，共需'+b.quantity+'件'+(misfits(b)?'，另有拿错'+misfits(b)+'件':'')+'，查看配货单"'):''}
         <div class="scoop-ticket-foot"><span class="scoop-tally">${a.beads.length?'已装 '+packed+' / '+a.beads.length+' 件':''}</span>${button('bead-rules',icon('catalog',17)+'<span>珠子表</span>','bead-legend-link','','aria-label="查看珠子对照表"')}</div></div>`;
     }
     const busy = ['tear','gifts','seal'].includes(a.stage);
@@ -135,7 +135,7 @@ window.LuckyCounter = (() => {
       const size=`width:${32*scale}%;height:${65*scale}%;z-index:${1+Math.round(y*100)};--tilt:${angle}deg`;
       const wrong=b.opened!==false && !C.fits(b,g)?' misfit':'';
       if(a.stage==='photo')return `<span class="parcel-item${wrong}" style="left:${x*100}%;top:${y*100}%;${size}">${item(g)}</span>`;
-      return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;${size}" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':'disabled'}`);
+      return button('return-piece',item(g),'parcel-item'+wrong,bag+'|'+index,`style="left:${x*100}%;top:${y*100}%;${size}" aria-label="取回${label(g)}" data-bag="${bag}" data-index="${index}" ${['pack','shelf'].includes(a.stage)?'data-drag="piece"':a.mode==='scoop'&&a.stage==='gifts'?'':'disabled'}`);
     })).join('');
     const bonus = a.gifts.map((g,i)=>a.stage==='photo' ? `<span class="parcel-gift" style="right:${2+18*i}%">${item(g)}</span>` : button('gift-return',item(g),'parcel-gift',i,`style="right:${2+18*i}%" aria-label="收回赠品${label(g)}" ${a.stage==='gifts'?'data-drag="packed-gift"':'disabled'}`)).join('');
     const address=sealed&&a.customer?`<div class="dispatch-card"><small>收件人</small><b>${a.customer}</b><i class="barcode"></i><small>#${num(a.id)}</small></div>`:'';
@@ -150,13 +150,13 @@ window.LuckyCounter = (() => {
         button('scoop',prop('counter/bead-pool.webp')+`<b class="prop-tag">舀第 ${a.scoopsTaken+1} 勺</b>`,'hand-prop scoop-prop ready')}
         <div class="bead-tray waiting-tray" data-pour-tray aria-label="已倒出的珠子">${a.beads.map(bead).join('')}</div></div>`;
     }
-    if(a.mode==='scoop' && ['shelf','pack'].includes(a.stage)){
+    if(a.mode==='scoop' && ['shelf','pack','gifts','seal'].includes(a.stage)){
       // Unfinished categories stay at the front so a long order never hides what is left below the fold.
       const order=a.bags.map((b,index)=>index).sort((i,j)=>Number(a.bags[i].pieces.length>=a.bags[i].quantity && !misfits(a.bags[i]))-Number(a.bags[j].pieces.length>=a.bags[j].quantity && !misfits(a.bags[j]))||i-j);
       return `<div class="bead-tray live-beads" aria-label="点珠子对照取货">${order.map(index=>{const b=a.bags[index];
         const wrong=misfits(b), state=wrong?'misfit':b.pieces.length===b.quantity?'collected':'';
         return button('station-card',`<span class="bead-pile">${bead(b)}</span><span class="bead-goods">${item({...b,variant:0})}</span><small>×${b.quantity}</small>`,'tray-bead '+state+(index===a.current?' active':''),index,
-          `aria-label="${C.kinds[b.kind].name}，${b.pieces.length}/${b.quantity}${wrong?'，拿错'+wrong+'件':''}" aria-pressed="${index===a.current}"`);
+          `aria-label="${C.kinds[b.kind].name}，${b.pieces.length-wrong}/${b.quantity}${wrong?'，拿错'+wrong+'件':''}" aria-pressed="${index===a.current}"`);
       }).join('')}</div>`;
     }
     const b=a.bags[a.current], next=a.bags.findIndex(card=>!card.opened);
@@ -167,27 +167,46 @@ window.LuckyCounter = (() => {
     }
     if(a.stage==='reveal') return button('station-unpack',`<span class="drawn-card">${item({...b,variant:b.variant??0})}<b>×${b.quantity}</b></span>${prop('props/open-'+b.wrapper+'.png','wrapper')}`,
       'hand-prop reveal-prop','','aria-label="收起图卡，去货架取货"');
-    if(a.stage==='gifts') return button('photo',icon(a.theme,40)+`<b>贴封签</b><small>赠品 ${a.gifts.length}/2</small>`,'postage-sticker','','data-drag="postage" aria-label="贴封签，可拖到盒子上或轻点"');
+    if(a.stage==='gifts' && a.mode!=='scoop') return button('photo',icon(a.theme,40)+`<b>贴封签</b><small>赠品 ${a.gifts.length}/2</small>`,'postage-sticker','','data-drag="postage" aria-label="贴封签，可拖到盒子上或轻点"');
     if(a.stage==='seal') return '';
     if(next===-1)return '';
     const ready=!b?.opened || b.pieces.length===b.quantity;
     return button('station-card',prop('counter/scoop.webp')+`<b class="prop-tag">${C.count(a)?'下一袋':'舀一勺'}</b>`,'hand-prop scoop-prop'+(ready?' ready':''),next);
   }
 
+  // A scoop order ends with one object: the seal sticker beside the box. It waits while
+  // the box is short, lights up once every bead is matched, and seals and sends in one go.
+  function sticker(a) {
+    const total=C.pieceCount(a.bags);
+    if(!total || a.scoopsTaken!==a.scoopTarget || !['shelf','pack','gifts','seal'].includes(a.stage))return '';
+    const done=a.bags.every(b=>b.pieces.length===b.quantity && !misfits(b));
+    const state=a.stage==='shelf' && !done ? 'waiting' : 'ready';
+    return button('seal-now',icon(a.theme,30)+`<span class="sticker-name">${a.customer}</span>`,
+      'desk-seal '+state,'',`data-drag="postage" aria-label="封签：拖到盒子上或轻点，封箱寄出"`);
+  }
+  // Gifts are optional: a small dish beside the sticker opens the gift shelves only when tapped.
+  function giftDish(a) {
+    const done=a.bags.every(b=>b.pieces.length===b.quantity && !misfits(b));
+    if(!(done && ['shelf','pack'].includes(a.stage)) && a.stage!=='gifts')return '';
+    const open=a.stage==='gifts';
+    const dots=`<i class="gift-dots" aria-hidden="true">${[0,1].map(i=>`<b class="${i<a.gifts.length?'on':''}"></b>`).join('')}</i>`;
+    return button(open?'':'gift-dish',`<img class="pixel" alt="" src="assets/items/${a.theme}-${C.giftKinds[a.id%C.giftKinds.length]}-0.png"><span>赠品</span>${dots}`,
+      'gift-dish'+(open?' open':''),'',open?`aria-label="赠品碟，已放 ${a.gifts.length}/2，去货架挑选" disabled`:'aria-label="挑赠品（可不挑）"');
+  }
   function deskParts(a) {
-    const opened=C.count(a), n=C.pieceCount(a.bags);
-    const action = a.stage==='pack' ? button('wrap','挑赠品','box-action') :
+    const opened=C.count(a), n=C.pieceCount(a.bags), scoop=a.mode==='scoop';
+    const action = scoop ? giftDish(a)+sticker(a) : a.stage==='pack' ? button('wrap','挑赠品','box-action') :
       a.stage==='seal' ? button('seal','寄出','box-action') :
-      opened===(a.mode==='scoop'?a.bags.length:5) && n && ['shelf','reveal','tray'].includes(a.stage) ?
+      opened===5 && n && ['shelf','reveal','tray'].includes(a.stage) ?
         button('station-pack','核对装箱','box-action'+(a.bags.every(b=>b.pieces.length===b.quantity)?' is-ready':'')) : '';
-    const extra = a.stage==='gifts' ? button('review','返回装盒','utility-label') : a.stage==='seal' ? button('rearrange','拆回','utility-label') : '';
-    const stamp = a.stage==='seal' && a.level && a.level%10===0 ? (a.stamp?`<span class="stamped">${icon(a.theme,18)} 已盖章</span>`:button('stamp','盖纪念章','utility-label')) : '';
+    const extra = scoop ? '' : a.stage==='gifts' ? button('review','返回装盒','utility-label') : a.stage==='seal' ? button('rearrange','拆回','utility-label') : '';
+    const stamp = !scoop && a.stage==='seal' && a.level && a.level%10===0 ? (a.stamp?`<span class="stamped">${icon(a.theme,18)} 已盖章</span>`:button('stamp','盖纪念章','utility-label')) : '';
     return {tools:`${button('station-close-rack',icon('back',21),'pixel-tool rack-back','','aria-label="返回整面货架"')}${button('pause',icon('pause',20),'pixel-tool','','aria-label="暂停"')}${C.canUndo(a)?button('undo','↶','pixel-tool','','aria-label="撤回" title="撤回"'):''}${extra}${stamp}`, note:receipt(a), hand:hand(a), box:parcel(a)+action};
   }
   function render(s,l) {
     const a=s.active, zoom=a.stage==='seal'?null:l.zoomBay;
     const parts=deskParts(a);
-    return `<section class="screen counter-scene" ${finishAttrs(s.display.equipped)} data-mode="${a.mode||'bags'}" data-stage="${a.stage}" data-camera="${zoom?'near':'wide'}" aria-label="打包柜台">
+    return `<section class="screen counter-scene" ${finishAttrs(s.display.equipped)} data-mode="${a.mode||'bags'}" data-theme="${a.theme}" data-stage="${a.stage}" data-camera="${zoom?'near':'wide'}" aria-label="打包柜台">
       ${stockroom(a)}<div class="table-surface" aria-hidden="true"></div><header class="counter-tools">${parts.tools}</header>
       <div class="counter-desk"><aside class="counter-note">${parts.note}</aside><div class="hand-space">${parts.hand}</div><div class="parcel-space">${parts.box}</div></div>
       </section>`;
@@ -215,6 +234,7 @@ window.LuckyCounter = (() => {
       if(!area.detail){
         aisle.insertAdjacentHTML('beforeend',shelfBay(order,i,stock,true));
         area.detail=aisle.lastElementChild;
+        area.detail.hidden=true;
         const rows=area.detail.querySelectorAll('.stock-cubby');
         area.rows.forEach((row,j)=>{
           row.detail=rows[j];
@@ -239,18 +259,31 @@ window.LuckyCounter = (() => {
         flight.animation.onfinish=null;flight.animation.cancel();
         flight.node.classList.remove('camera-moving');flight=null;
       }
-      const base=animate?detail.getBoundingClientRect():null;
-      const to=animate?(selected?base:area.wide.getBoundingClientRect()):null;
+      // The tray can jump straight from one enlarged bay to another.
+      // A cached bay may paint only while selected or during its closing animation.
+      for(const other of areas){
+        if(!other.detail)continue;
+        const active=other.detail===detail && !!selected;
+        other.detail.inert=!active;
+        other.detail.classList.toggle('inspected',active);
+        other.detail.hidden=!active && !(animate && other.detail===detail);
+      }
       scene.dataset.camera=selected?'near':'wide';
       if(selected)overview.setAttribute('aria-hidden','true');else overview.removeAttribute('aria-hidden');
       if(selected)canopy.style.setProperty('--canopy-x',i*100/3+'%');
-      detail.inert=!selected;detail.classList.toggle('inspected',!!selected);
       if(!animate)return;
+      const base=detail.getBoundingClientRect();
+      if(!base.width || !base.height){detail.hidden=!selected;return;}
+      const to=selected?base:area.wide.getBoundingClientRect();
       const transform=r=>`translate(${r.left-base.left}px,${r.top-base.top}px) scale(${r.width/base.width},${r.height/base.height})`;
       detail.classList.add('camera-moving');
       const animation=detail.animate([{transform:transform(from)},{transform:transform(to)}],{duration:270,easing:'cubic-bezier(.22,.68,.22,1)'});
       flight={node:detail,animation};
-      animation.onfinish=()=>{detail.classList.remove('camera-moving');flight=null;};
+      animation.onfinish=()=>{
+        detail.classList.remove('camera-moving');
+        detail.hidden=!selected;
+        flight=null;
+      };
     }
     function syncStock(next) {
       const modeChanged=next.gift!==previousStock.gift;
@@ -355,6 +388,40 @@ window.LuckyCounter = (() => {
       scene.inert=false;delete scene.dataset.transferring;
     }
   }
+  // The climax of an order: the lid comes down, the address label is pressed on, and the
+  // shop stamp lands. Stepped easing keeps the motion in the pixel idiom.
+  async function sealMotion(scene,reduceMotion,play) {
+    const parcel=scene?.querySelector('.parcel.sealed');
+    if(!parcel)return;
+    const theme=scene.dataset.theme;
+    const mark=document.createElement('i');
+    mark.className='parcel-stamp';mark.setAttribute('aria-hidden','true');
+    mark.innerHTML=icon(theme||'pink',30);
+    const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+    scene.inert=true;scene.dataset.transferring='seal';
+    const label=parcel.querySelector('.dispatch-card');
+    if(label)label.style.opacity='0';
+    try{
+      if(reduceMotion||!parcel.animate){
+        if(label)label.style.opacity='';
+        parcel.append(mark);play('seal');await wait(350);return;
+      }
+      play('paper');
+      await parcel.animate([{transform:'translateY(-6%) scale(1.03,.92)'},{transform:'translateY(1%) scale(.97,1.05)',offset:.55},{transform:'none'}],
+        {duration:300,easing:'steps(6,end)'}).finished;
+      if(label){
+        label.style.opacity='';play('tape');
+        await label.animate([{transform:'translate(-40%,-60%) rotate(-14deg)',opacity:0},{transform:'translate(0,-8%) rotate(-3deg)',opacity:1,offset:.7},{transform:'none',opacity:1}],
+          {duration:320,easing:'steps(5,end)'}).finished;
+      }
+      await wait(120);
+      parcel.append(mark);play('seal');
+      await mark.animate([{transform:'scale(2.2)',opacity:0},{transform:'scale(.86)',opacity:1,offset:.6},{transform:'scale(1)',opacity:1}],
+        {duration:240,easing:'steps(4,end)'}).finished;
+      parcel.animate([{transform:'scale(1.02,.97)'},{transform:'none'}],{duration:140,easing:'steps(3,end)'});
+      await wait(520);
+    }catch{}finally{scene.inert=false;delete scene.dataset.transferring;}
+  }
   function finishAttrs(selection){
     return Object.keys(departments).map(part=>`data-${part}="${selection[part]}"`).join(' ');
   }
@@ -379,5 +446,5 @@ window.LuckyCounter = (() => {
       <header class="counter-tools">${button('back',icon('back',21),'pixel-tool','','aria-label="回到店里"')}</header>
       <section class="finish-book" aria-label="柜台样本册">${finishControls(s,l)}</section></section>`;
   }
-  return {render,connect,prepareOverview,fixtures,receipt,photo,showroom,finishControls,bead,scoopMotion,pourMotion};
+  return {render,connect,prepareOverview,fixtures,receipt,photo,showroom,finishControls,bead,scoopMotion,pourMotion,sealMotion};
 })();

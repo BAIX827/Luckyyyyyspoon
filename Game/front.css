@@ -3,7 +3,7 @@
   position:relative; width:100%; height:100%; overflow:hidden; isolation:isolate;
   --plum:#52303e; --milk:#fff2ce; --inset-x:max(2.5vw,env(safe-area-inset-left));
   --inset-y:max(3dvh,env(safe-area-inset-top)); color:var(--plum);
-  font-family:"PingFang SC","Microsoft YaHei",sans-serif; line-height:1.25;
+  font-family:var(--pixel-font); line-height:1.25;
 }
 .scene [hidden] {display:none!important}
 .scene img,.scene canvas {image-rendering:pixelated; user-select:none; -webkit-user-drag:none}
@@ -85,7 +85,7 @@
 .marker-face::before,.marker-face::after {content:""; position:absolute}
 .marker-face::before {inset:2px 2px 3px; background:var(--shade)}
 .marker-face::after {inset:2px 3px 20%; background:var(--fill); box-shadow:inset 0 3px var(--hi)}
-.marker-face b {position:relative; z-index:1; padding-bottom:.18em; font:900 clamp(16px,min(2vw,4.3dvh),30px)/1 Consolas,monospace}
+.marker-face b {position:relative; z-index:1; padding-bottom:.18em; font:900 clamp(16px,min(2vw,4.3dvh),30px)/1 var(--pixel-font)}
 .map-stop[aria-pressed="true"] .marker-face {outline:0; --hi:#ffebbb; --edge:#69374a}
 .here-flag {display:none}
 .map-stop[aria-pressed="true"] .here-flag {
@@ -160,13 +160,6 @@
 .veil .dialog header{border-bottom:1px dashed #bba082;padding-bottom:5px}
 .veil .dialog>.btn:not(.primary){border:1px solid #c7ab85;border-radius:5px;background:#f5e4c3;color:#6e503e;box-shadow:0 2px #cfb794}
 
-.in-game-tutorial .tutorial-caption,.in-game-tutorial .skip-lesson{
-  clip-path:none;transform:none;background:#fff0c8;color:#614938;border:var(--note-edge);
-  border-radius:var(--note-corners);box-shadow:var(--note-shadow)
-}
-.in-game-tutorial .tutorial-caption{width:max-content;padding:4px 9px;pointer-events:none}
-.tutorial-caption p{font-size:13px;letter-spacing:0}
-.in-game-tutorial .skip-lesson{padding:4px 8px;background:#e9debd}
 .street-scene .walk,.street-scene .home-key,.dialog header button,.counter-tools .pixel-tool{
   border:1px solid #9f8162;border-radius:5px 6px 8px 5px;color:#624936;background:#f6e6c4;
   box-shadow:inset 0 -2px #deca9e,1px 2px #927553
@@ -222,7 +215,7 @@
 .delivery-front .reply-paper{padding-top:21px}
 .street-ticket-card,.counter-scene .ticket-paper{background:var(--gingham),var(--note-stock);background-size:100% 6px,100% 6px,auto;background-repeat:no-repeat,no-repeat,repeat}
 .counter-scene .ticket-paper{padding-top:max(8px,.7em)}
-.in-game-tutorial .tutorial-caption::before,.order-album .album-card::before,.arrival-slip::before{
+.order-album .album-card::before,.arrival-slip::before{
   content:'';position:absolute;top:-3px;left:8%;width:17px;height:6px;background:var(--gingham);transform:rotate(-8deg);pointer-events:none
 }
 
@@ -264,8 +257,6 @@
 .dialog .note-line[aria-current=true]{box-shadow:inset 3px 0 #9aa984;background:#dedfba66;padding-left:6px}
 .counter-scene .scoop-ticket{background:var(--note-stock)}
 .counter-scene .scoop-ticket .binder{background:var(--gingham);border:0}
-.in-game-tutorial .tutorial-caption{border:1px solid #aa8664;box-shadow:1px 2px #a2826266}
-.in-game-tutorial .tutorial-caption::before{background:#aabe9a;width:14px;height:5px}
 .reply-paper .order-stars{border:0;padding:0;color:#9a613d}
 .reply-paper .receipt-till{color:#78543c}
 @media(orientation:landscape) and (min-height:360px){
@@ -289,7 +280,6 @@
 .delivery-front .reply-paper{padding-inline:clamp(18px,2vw,28px)}
 .delivery-front .mail-envelope{border-radius:8px 11px 16px 10px}
 .counter-scene .ticket-paper{border-radius:11px 15px 19px 12px;box-shadow:0 2px #ddbc98,1px 4px 2px #77553750}
-.in-game-tutorial .tutorial-caption{border-radius:10px 12px 12px 5px;box-shadow:1px 2px #ad896854}
 
 /* Cut the same ribbon at two widths for the counter slip and full sheets. */
 [data-trim="strawberry"]{--paper-trim:url(assets/counter/trim-strawberry.png)}
@@ -344,11 +334,3 @@
   box-shadow:inset 0 2px #d7e5c6,inset 0 -2px #a4bd99;
   clip-path:polygon(0 0,100% 0,100% 100%,0 100%,5px 50%)
 }
-.tutorial-caption::after{
-  content:'';position:absolute;width:8px;height:8px;background:#fff0c8;
-  border:solid #aa8664;border-width:0 1px 1px 0;pointer-events:none
-}
-.tutorial-caption[data-side="above"]::after{left:var(--tip);bottom:-5px;transform:translateX(-50%) rotate(45deg)}
-.tutorial-caption[data-side="below"]::after{left:var(--tip);top:-5px;transform:translateX(-50%) rotate(225deg)}
-.tutorial-caption[data-side="right"]::after{top:var(--tip);left:-5px;transform:translateY(-50%) rotate(135deg)}
-.tutorial-caption[data-side="left"]::after{top:var(--tip);right:-5px;transform:translateY(-50%) rotate(-45deg)}

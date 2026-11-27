@@ -128,6 +128,20 @@
     }
     return true;
   }
+  const boxDone=a=>a.bags.every(b=>b.pieces.length===b.quantity && b.pieces.every(g=>C.fits(b,g)));
+  async function sealSequence(force=false){
+    const a=state.active;if(!a||local.page!=='play')return;
+    if(!force && ['shelf','pack'].includes(a.stage) && !boxDone(a)){modal('shortage');sound('paper');return;}
+    if(local.modals.length){local.modals=[];render(true);}
+    if(a.stage==='shelf' && !await change('station-pack',null,false))return;
+    if(state.active.stage==='pack' && !await change('wrap',null,false))return;
+    if(state.active.stage==='gifts' && !await change('photo',null,false))return;
+    if(state.active.level && state.active.level%10===0 && !state.active.stamp)await change('stamp',null,false);
+    local.zoomBay=null;render();
+    await LuckyCounter.sealMotion(root.firstElementChild,reduced(),sound);
+    const id=a.id;
+    if(await change('seal',null,false)){local.orderId=id;go('result');sound('reveal');}
+  }
   const needsUnlock=n=>n>C.freeLevels && !P.fullGame();
   function openUnlock(){
     modal('unlock');
@@ -231,6 +245,9 @@
         }return;
       case 'bead-rules':modal('bead-rules');return;
       case 'tutorial-skip':await change('tutorial-skip',val);return;
+      case 'tutorial-off':
+        for(const key of ['first-order','hold',...C.deliveries.map(d=>'goods-'+d.kind)])await change('tutorial-skip',key,false);
+        back();return;
       case 'ticket-zoom': modal('ticket');return;
       case 'station-card':
         if(await change('station-card',n,false)){
@@ -245,7 +262,10 @@
         }else if(a?.stage==='shelf' && a.current===n && local.modals.at(-1)==='ticket'){
           back();
         }else if(a?.mode==='scoop' && a.stage==='shelf' && a.current===n && !local.zoomBay){
-          local.zoomBay=C.kinds[a.bags[n].kind].drawer;render();sound('book');
+          // A reopened line has no bay chosen yet; pick its bay so the shelf accepts the goods.
+          const kind=a.bags[n].kind;
+          if(a.drawer!==C.kinds[kind].drawer)await change('station-browse',{kind,variant:0},false);
+          local.zoomBay=C.kinds[kind].drawer;render();sound('book');
           root.querySelector('[data-act="station-close-rack"]')?.focus({preventScroll:true});
         }
         return;
@@ -271,6 +291,12 @@
       }
       case 'return-piece':{
         const [bag,index]=val.split('|').map(Number);
+        // Tapping a packed piece after the box was complete reopens that line for a fix.
+        if(a?.mode==='scoop' && a.stage==='gifts'){
+          if(!(await change('review',null,false) && await change('refill',bag,false)))return;
+          await change('station-browse',{kind:a.bags[bag].kind,variant:0},false);
+          local.zoomBay=C.kinds[a.bags[bag].kind].drawer;
+        }
         if(await change('return-piece',{bag,index}))sound('tick');return;
       }
       case 'finish-card':await change('finish-card');return;
@@ -332,6 +358,12 @@
       case 'next':local.selectedSlot=null;await change('next');return;
       case 'photo':local.selectedSlot=null;if(await change('photo',null,false)){local.zoomBay=null;render();sound('tick');}return;
       case 'rearrange':await change('rearrange');return;
+      case 'gift-dish':
+        if(a?.mode!=='scoop' || !boxDone(a))return;
+        if(a.stage==='shelf' && !await change('station-pack',null,false))return;
+        if(await change('wrap',null,false)){local.zoomBay=null;render();sound('gift');}return;
+      case 'seal-now':await sealSequence();return;
+      case 'seal-confirm':await sealSequence(true);return;
       case 'seal-hint':note('把封签拖到盒子中缝，或点下方按钮。');return;
       case 'seal':{if(!a)return;const id=a.id;if(await change('seal',null,false)){local.orderId=id;go('result');sound('seal');}return;}
       case 'album':go('album',true);return;
@@ -415,8 +447,19 @@
     if(e.key==='Escape'){if(local.modals.length){back();}else if(local.page==='play'&&local.zoomBay){queue(()=>act('station-close-rack',''));}else if(local.page==='play'){modal('pause');}else if(local.page==='intro'){queue(finishIntro);}else{back();}}
     if(e.key==='Tab'&&local.modals.length){const btns=[...root.querySelectorAll('.dialog button:not(:disabled),.dialog select')];if(!btns.length)return;if(e.shiftKey&&document.activeElement===btns[0]){e.preventDefault();btns.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===btns.at(-1)){e.preventDefault();btns[0].focus();}}
   });
+  function rackBackground(target){
+    const scene=target?.closest('.counter-scene[data-camera="near"]');
+    if(!scene || target.closest('button,[data-box],.ticket-paper,.bead-tray'))return null;
+    return target===scene || target.closest('.table-surface,.stockroom') ? scene : null;
+  }
   root.addEventListener('pointerdown',e=>{
+    if(pointer?.type==='rack-background' && e.pointerId!==pointer.id)pointer.moved=true;
     if(pointer||!state?.active||e.button!==0||local.modals.length)return;
+    const background=e.isPrimary && rackBackground(e.target);
+    if(background){
+      pointer={id:e.pointerId,type:'rack-background',el:background,bay:local.zoomBay,x:e.clientX,y:e.clientY,moved:false};
+      return;
+    }
     let el=e.target.closest('[data-gesture],[data-drag]');
     const bay=e.target.closest('.bay-hit');
     if(bay && ['shelf','gifts'].includes(state.active.stage)){
@@ -470,6 +513,7 @@
     const p=pointer;if(!p||p.id!==e.pointerId)return;
     p.dx=e.clientX-p.x;p.dy=e.clientY-p.y;if(!p.moved && Math.hypot(p.dx,p.dy)<5)return;
     p.moved=true;
+    if(p.type==='rack-background')return;
     if(p.type==='stock-piece'){stopStockHold();if(ignoreStockClick)return;}
     if(p.type==='tear'){
       p.last=Math.min(1,Math.max(p.last,p.start+p.dx/p.tearDistance));
@@ -485,6 +529,15 @@
   }
   function finishPointer(e,cancelled=false){
     const p=pointer;if(!p||p.id!==e.pointerId)return;pointer=null;
+    if(p.type==='rack-background'){
+      if(!cancelled && !p.moved && Math.hypot(e.clientX-p.x,e.clientY-p.y)<5 &&
+         rackBackground(document.elementFromPoint(e.clientX,e.clientY))===p.el){
+        // The following touch click may land on the newly revealed overview.
+        ignoreStockClick=true;
+        queue(()=>{if(!local.modals.length && local.zoomBay===p.bay && p.el.isConnected)return act('station-close-rack','');});
+      }
+      return;
+    }
     if(p.frame)cancelAnimationFrame(p.frame);
     const dropped=p.ghost?.getBoundingClientRect();
     const spoonDrop=p.type==='scoop-pour'?p.el.querySelector('.loaded-spoon')?.getBoundingClientRect():null;
@@ -512,8 +565,8 @@
       return;
     }
     if(p.type==='postage'){
-      if(target?.closest('[data-box],.parcel-space') && state.active?.id===p.order && state.active.stage==='gifts')
-        queue(()=>act('photo',''));
+      if(target?.closest('[data-box]') && state.active?.id===p.order)
+        queue(()=>act(state.active.mode==='scoop'?'seal-now':'photo',''));
       return;
     }
     if(p.box){

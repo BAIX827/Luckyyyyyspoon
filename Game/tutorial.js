@@ -50,9 +50,34 @@ window.LuckyTutorial = (() => {
     stepKey = '';
     stepTarget = null;
   }
+  // New stock is announced by objects, not by the gesture caption: a delivery slip clipped
+  // beside the order ticket, and a twinkle on the cubby that now holds it.
+  function syncArrival(scene, a) {
+    const d = a?.mode === 'scoop' && C.deliveries.find(x => x.after === a.level - 1);
+    const kind = d && !progress.learned['goods-' + d.kind] ? d.kind : null;
+    scene.querySelectorAll('.stock-cubby.fresh-stock').forEach(n => { if (Number(n.dataset.kind) !== kind) n.classList.remove('fresh-stock'); });
+    let tag = scene.querySelector('.arrival-tag');
+    if (kind === null) { tag?.remove(); return; }
+    scene.querySelectorAll(`.stock-cubby[data-kind="${kind}"]`).forEach(n => n.classList.add('fresh-stock'));
+    const desk = scene.querySelector('.counter-desk'), note = scene.querySelector('.counter-note .ticket-paper');
+    if (!desk || !note) return;
+    if (!tag) {
+      tag = document.createElement('div');
+      tag.className = 'arrival-tag';
+      tag.setAttribute('role', 'note');
+      tag.innerHTML = `<img class="pixel" alt="" src="assets/items/${a.theme}-${kind}-0.png"><span><small>新到货</small><b></b></span>`;
+      tag.querySelector('b').textContent = C.kinds[kind].name;
+      desk.append(tag);
+    }
+    // Clip the slip over the ticket's top-right corner.
+    const box = desk.getBoundingClientRect(), n = note.getBoundingClientRect();
+    tag.style.left = Math.round(n.right - box.left - tag.offsetWidth * .4) + 'px';
+    tag.style.top = Math.round(n.top - box.top - tag.offsetHeight * .85) + 'px';
+  }
   function showTutorial() {
     const a = progress.active;
     const scene = game.querySelector('.counter-scene');
+    if (scene && a) syncArrival(scene, a);
     if (!scene || !a || a.mode!=='scoop' || game.querySelector('.veil')) { clearTutorial(); return; }
     const delivery = C.deliveries.find(d => d.after === a.level - 1);
     let lesson = a.level === 1 ? 'first-order' : delivery ? 'goods-' + delivery.kind : null;
@@ -68,19 +93,21 @@ window.LuckyTutorial = (() => {
     const find = selector => scene.querySelector(selector);
     const instruction = (key, selector, text) => ({key, target:find(selector), text});
     let hint = null;
-    if (a.stage === 'scoop') hint = instruction('scoop','.scoop-prop','舀一勺');
-    else if (a.stage === 'drawn') hint = instruction('pour','.pour-prop',delivery ? C.kinds[delivery.kind].name+'到货 · 倒进盘里' : '倒进盘里');
+    // A prop that carries its own wooden tag needs only the hand. Words are kept for new ideas, once.
+    if (a.stage === 'scoop') hint = instruction('scoop','.scoop-prop','');
+    else if (a.stage === 'drawn') hint = instruction('pour','.pour-prop','');
     else if (lesson === 'hold') {
       if (scene.dataset.camera === 'near' && find('.shelf-bay.inspected'))
         hint = instruction('hold',`.shelf-bay.inspected [data-act="add-piece"][data-val="${card.color}|${card.kind}|${card.variant ?? 0}"]`,'按住不放，连续取货');
     } else if (lesson === 'first-order') {
       if (a.current === firstBag && a.stage === 'shelf' && card) {
         const wrong = card.pieces.findIndex(g => !C.fits(card,g));
-        if (wrong >= 0) hint = instruction('return',`[data-act="return-piece"][data-val="${a.current}|${wrong}"]`,'点一下，退回');
+        if (wrong >= 0) hint = instruction('return',`[data-act="return-piece"][data-val="${a.current}|${wrong}"]`,'颜色不对，点它退回');
         else if (card.pieces.length < card.quantity) hint = pickingHint(card,false);
-      } else if (a.stage === 'pack') hint = instruction('wrap','[data-act="wrap"]','配齐了，挑赠品');
-      else if (a.stage === 'gifts') hint = instruction('gifts','[data-act="photo"]','贴上封签');
-      else if (a.stage === 'seal') hint = instruction('send','[data-act="seal"]','寄给客人');
+      }
+      // Once the box is complete the hand only shows the sticker; gifts stay the player's own idea.
+      if (find('.desk-seal.ready') && (a.stage === 'gifts' || a.bags.every(b => b.pieces.length === b.quantity && b.pieces.every(g => C.fits(b,g)))))
+        hint = instruction('send','.desk-seal.ready','');
     } else if (card?.kind === delivery.kind) {
       const correct = card.pieces.some(g => C.fits(card,g));
       if (correct) { clearTutorial(); return; }
@@ -89,9 +116,9 @@ window.LuckyTutorial = (() => {
     function pickingHint(b) {
       const drawer = C.kinds[b.kind].drawer;
       if (scene.dataset.camera !== 'near' || !find('.shelf-bay.inspected'))
-        return instruction('bay',`[data-act="station-bay"][data-val="${drawer}"]`,'点开货架');
+        return instruction('bay',`[data-act="station-bay"][data-val="${drawer}"]`,'');
       const selector = `.shelf-bay.inspected [data-act="add-piece"][data-val="${b.color}|${b.kind}|${b.variant ?? 0}"]`;
-      return instruction('pick',selector,'放进盒子');
+      return instruction('pick',selector,'');
     }
     if (!hint?.target || hint.target.disabled || !hint.target.getClientRects().length) { clearTutorial(); return; }
     const key = lesson + ':' + hint.key;
@@ -99,17 +126,16 @@ window.LuckyTutorial = (() => {
     clearTutorial();
     stepKey = key;
     stepTarget = hint.target;
-    gestureKind = ['pick','pour'].includes(hint.key) ? 'drag' : hint.key === 'hold' ? 'hold' : 'tap';
+    gestureKind = ['pick','pour','send'].includes(hint.key) ? 'drag' : hint.key === 'hold' ? 'hold' : 'tap';
     tutorialLayer = document.createElement('div');
     tutorialLayer.className = 'in-game-tutorial';
     tutorialLayer.dataset.demo = gestureKind;
-    tutorialLayer.innerHTML = '<div class="tutorial-halo" aria-hidden="true"></div><div class="gesture-demo" aria-hidden="true"><img class="gesture-goods" alt=""><img class="gesture-hand" src="' + handArt + '" alt=""><i class="tap-ripple"></i></div><div class="tutorial-caption"><p role="status"></p></div><button type="button" class="skip-lesson">跳过引导</button>';
+    tutorialLayer.innerHTML = '<div class="tutorial-halo" aria-hidden="true"></div><div class="gesture-demo" aria-hidden="true"><img class="gesture-goods" alt=""><img class="gesture-hand" src="' + handArt + '" alt=""><i class="tap-ripple"></i></div><div class="tutorial-caption"><p role="status"></p></div>';
     tutorialLayer.querySelector('p').textContent = hint.text;
+    tutorialLayer.querySelector('.tutorial-caption').hidden = !hint.text;
     const ghost = tutorialLayer.querySelector('.gesture-goods');
     if (hint.key === 'pick') ghost.src = 'assets/items/' + card.color + '-' + card.kind + '-' + (card.variant ?? 0) + '.png';
     else ghost.hidden = true;
-    tutorialLayer.querySelector('button').dataset.act = 'tutorial-skip';
-    tutorialLayer.querySelector('button').dataset.val = lesson;
     game.append(tutorialLayer);
     positionTutorial();
     const until = performance.now() + 750;
@@ -148,7 +174,7 @@ window.LuckyTutorial = (() => {
       {side:'above',x:left,y:cy-halfH-gap-h}, {side:'below',x:left,y:cy+halfH+gap},
       {side:'right',x:cx+halfW+gap,y:top}, {side:'left',x:cx-halfW-gap-w,y:top}
     ];
-    const controls=[game.querySelector('.counter-tools'),tutorialLayer.querySelector('.skip-lesson')]
+    const controls=[game.querySelector('.counter-tools')]
       .filter(Boolean).map(el=>el.getBoundingClientRect());
     const fits=pos=>pos.x>=bounds.left+4 && pos.x+w<=bounds.right-4 &&
       pos.y>=bounds.top+4 && pos.y+h<=bounds.bottom-4 &&
