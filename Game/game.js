@@ -16,7 +16,7 @@
     const keep=!reset&&root.dataset.view===id;
     const counter=local.page==='play' && Array.isArray(state.active?.gifts);
     const scroll=keep&&!counter?(root.querySelector('.scroll')?.scrollTop||0):0;
-    const dialogScroll=keep&&local.modals.length?(root.querySelector('.dialog')?.scrollTop||0):0;
+    const dialogScroll=keep&&local.modals.length?(root.querySelector('.dialog-body')?.scrollTop||0):0;
     const focused=document.activeElement,prevFocus=focused?.dataset?.act,prevVal=focused?.dataset?.val;
     root.dataset.trim=state.display.equipped.trim;
     root.dataset.view=id;root.classList.toggle('reduced',reduced());root.dataset.page=local.page;
@@ -42,7 +42,7 @@
     const dl=modalHTML?root.querySelector('.dialog'):null;
     window.LuckyTutorial?.update(state);
     if(root.firstElementChild && root.firstElementChild.inert!==!!dl)root.firstElementChild.inert=!!dl;
-    if(dl)dl.scrollTop=dialogScroll;
+    if(dl)dl.querySelector('.dialog-body').scrollTop=dialogScroll;
     if(keep&&prevFocus&&!focused.isConnected){
       const btn=(dl||root).querySelector(`[data-act="${CSS.escape(prevFocus)}"][data-val="${CSS.escape(prevVal??'')}"]`);
       btn?.focus({preventScroll:true});
@@ -71,7 +71,23 @@
   }
   function sound(which,delay=0){P.play(which,state.settings,delay);}
   function itemSound(kind){sound(['cloth','pen','book','clip','paper','zip','cloth','clip','cloth','pen','paper','tape','pen','paper','tape','paper','clip','clip','cloth','clip','cloth','clip','clip','ceramic'][kind]);}
+  // Any item on the shelf can be taken; it joins the order line it belongs to, so the
+  // player never has to pick a line on the slip first.
+  async function aimLine(goods) {
+    const a=state.active;
+    if(a?.mode!=='scoop' || a.stage!=='shelf')return true;
+    const open=b=>b.opened && b.pieces.length<b.quantity;
+    let i=a.bags.findIndex(b=>open(b) && C.fits(b,goods));
+    if(i<0)i=a.bags.findIndex(b=>open(b) && b.kind===goods.kind);
+    if(i<0)i=open(a.bags[a.current]||{})?a.current:a.bags.findIndex(open);
+    if(i<0)return false;
+    if(i!==a.current && !await change('station-card',i,false))return false;
+    const drawer=C.kinds[goods.kind].drawer;
+    if(state.active.drawer!==drawer && !await change('station-browse',{kind:goods.kind,variant:goods.variant},false))return false;
+    return true;
+  }
   async function takeFromRack(goods,dropped=null,dragged=false) {
+    if(!await aimLine(goods))return false;
     const a=state.active, card=a?.bags[a.current], value=[goods.color,goods.kind,goods.variant].join('|');
     const slot=root.querySelector(`.shelf-bay.inspected .rack-slot[data-val="${value}"]`);
     const from=!reduced() ? dropped || slot?.querySelector('img')?.getBoundingClientRect() : null;
@@ -386,7 +402,7 @@
     const hold={pointer:event.pointerId,value:el.dataset.val,order:state.active.id,bag:state.active.current};
     heldStock=hold;
     const repeat=async()=>{
-      if(document.hidden || heldStock!==hold || el.disabled || !el.closest('.inspected') || state.active?.id!==hold.order || state.active.current!==hold.bag || local.page!=='play' || local.modals.length)return;
+      if(document.hidden || heldStock!==hold || el.disabled || !el.closest('.inspected') || state.active?.id!==hold.order || local.page!=='play' || local.modals.length)return;
       ignoreStockClick=true;
       const goods=goodsVal(hold.value);
       if(!state.learned.hold)await change('tutorial-skip','hold',false);

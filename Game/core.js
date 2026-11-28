@@ -132,6 +132,9 @@
     return '第'+number+'关';
   };
   const scoopSize = {min:20,max:28};
+  // The very first box is a half spoon, so a new player learns the counter on a handful of pieces.
+  const firstScoop = {min:10,max:12};
+  const spoonFor = level => level===1 ? firstScoop : scoopSize;
   const legacyBeadsPerScoop = 6;
   function cardsFor(level) {
     return level.quantities.flatMap((quantity,kind)=>quantity ? [{
@@ -191,7 +194,8 @@
     if(action==='scoop'){
       if(a.stage!=='scoop'||a.scoopsTaken>=a.scoopTarget)return false;
       const debut=deliveries.find(d=>d.after===a.level-1);
-      const amount=a.scoopSizes ? scoopSize.min+Math.floor(random()*(scoopSize.max-scoopSize.min+1)) : legacyBeadsPerScoop;
+      const size=spoonFor(a.level);
+      const amount=a.scoopSizes ? size.min+Math.floor(random()*(size.max-size.min+1)) : legacyBeadsPerScoop;
       a.pendingBeads=Array.from({length:amount},(_,i)=>({
         kind:a.scoopsTaken===0 && i===0 && debut ? debut.kind :
           a.stockKinds[Math.floor(random()*a.stockKinds.length)],
@@ -518,7 +522,7 @@
     const bead=b=>b && validKind(b.kind) && validColor(b.color) && b.variant===null;
     if(!Number.isInteger(a.scoopsTaken)||a.scoopsTaken<0||a.scoopsTaken>3)return false;
     const sizes=a.scoopSizes===undefined?Array.from({length:a.scoopsTaken},()=>legacyBeadsPerScoop):a.scoopSizes;
-    const validSize=n=>Number.isInteger(n)&&(a.scoopSizes===undefined?n===legacyBeadsPerScoop:n>=scoopSize.min&&n<=scoopSize.max);
+    const validSize=n=>Number.isInteger(n)&&(a.scoopSizes===undefined?n===legacyBeadsPerScoop:n>=spoonFor(a.level).min&&n<=scoopSize.max);
     if(![1,2,3].includes(a.scoopTarget)||!Number.isInteger(a.scoopsTaken)||
       a.scoopsTaken<0||a.scoopsTaken>a.scoopTarget||
       !Array.isArray(sizes)||sizes.length!==a.scoopsTaken||!sizes.every(validSize)||

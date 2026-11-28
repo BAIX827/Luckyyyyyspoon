@@ -197,7 +197,7 @@ final class StoreBridge: NSObject, WKScriptMessageHandlerWithReply {
     }
 }
 
-final class GameController: UIViewController, WKNavigationDelegate {
+final class GameController: UIViewController, WKNavigationDelegate, UIScrollViewDelegate {
     private let bridge = StoreBridge()
     private var webView: WKWebView!
     private var gameRoot: URL?
@@ -218,6 +218,12 @@ final class GameController: UIViewController, WKNavigationDelegate {
         web.scrollView.backgroundColor = paper
         web.scrollView.contentInsetAdjustmentBehavior = .never
         web.scrollView.bounces = false
+        // The counter is laid out for the whole window; a pinch must never shrink it into a corner.
+        web.scrollView.minimumZoomScale = 1
+        web.scrollView.maximumZoomScale = 1
+        web.scrollView.bouncesZoom = false
+        web.scrollView.pinchGestureRecognizer?.isEnabled = false
+        web.scrollView.delegate = self
         web.navigationDelegate = self
         view.addSubview(web)
         bridge.fullGame.onChange = { [weak web] in
@@ -251,4 +257,13 @@ final class GameController: UIViewController, WKNavigationDelegate {
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { loadGame() }
+
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? { nil }
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        if scrollView.zoomScale != 1 { scrollView.setZoomScale(1, animated: false) }
+    }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        webView.scrollView.pinchGestureRecognizer?.isEnabled = false
+        webView.scrollView.setZoomScale(1, animated: false)
+    }
 }

@@ -108,7 +108,7 @@
     const crowned=chapter>=0&&C.perfectChapters(earlier.concat(o))[chapter]&&!C.perfectChapters(earlier)[chapter];
     const crown=crowned?`<p class="chapter-crown">${C.chapters[chapter].name} 全部三星 · ${icon('star',16)} <b>+${C.chapterBonus}</b> 星币</p>`:'';
     const first=o.level===100?s.orders.find(x=>x.level===1):null;
-    const photo=first?`<div class="paired-parcels"><figure>${orderPhoto(first)}<figcaption>阿梨的第一盒</figcaption></figure><figure>${orderPhoto(o)}<figcaption>第一百盒</figcaption></figure></div>`:orderPhoto(o);
+    const photo=first?`<div class="paired-parcels"><figure>${orderPhoto(first)}<figcaption>阿梨的第一盒</figcaption></figure><figure>${orderPhoto(o)}<figcaption>第一百盒</figcaption></figure></div>`:detail?orderPhoto(o):LuckyCounter.sealedPhoto(o);
     const next=level&&o.level<100?primary('level-ticket','下一单',o.level+1):primary('new-order','随心接单');
     const income=`${icon('star',18)} <b>+${o.earnings}</b> 星币`;
     const sample=o.sample && C.finishCatalog.find(f=>f.id===o.sample);
@@ -117,7 +117,7 @@
       sample?`aria-label="试摆陈列新样，${sample.name}"`:'aria-label="用星币挑柜台陈列"');
     const arrival=Number.isInteger(o.arrival)&&C.kinds[o.arrival]?`<div class="arrival-slip">${sprite(o.theme,o.arrival,0)}<span><small>到货单 · ${C.kinds[o.arrival].drawer}区</small><b>${C.itemName(o.theme,o.arrival,0)}</b></span></div>`:'';
     return section(`<div class="shop-utilities">${mini(detail?'back':'home','back',detail?'返回':'回到店里')}</div>
-      <div class="delivery-photo" aria-label="本单的装盒照片">${photo}</div>
+      <div class="delivery-photo" aria-label="${first||detail?'本单的装盒照片':'寄出的包裹'}">${photo}</div>
       <i class="mail-envelope" aria-hidden="true"></i><article class="reply-paper"><div class="scroll reply-scroll"><div class="letter-head"><span>${level?C.levelName(level.id):'来信'}</span><small>#${num(o.id)}${o.mode==='scoop'?' · '+o.scoopTarget+' 勺':''}</small></div><h1>${o.customer}的回信</h1>
       <p class="customer-voice">“${reaction}${giftReply(o.gifts)}”</p><div class="letter-signature">—— ${o.customer}</div><div class="reply-totals"><span>${level?rating:'满意度 <b>'+o.satisfaction+'%</b>'}</span>${till}</div>${crown}
       ${arrival}${o.stamp?'<p class="gift-note">纪念封签 · '+C.chapterFor(o.level).paper+'</p>':''}${rows?`<div class="receipt-fixes">${rows}</div>`:''}</div>
@@ -174,7 +174,7 @@
     if(l.page==='intro')return LuckyFront.home(s,true);
     if(l.page==='request')return orderCounter(s,l);
     if(l.page==='result'||l.page==='detail')return receipt(s,l.orderId,l.page==='detail');
-    if(l.page==='album')return section(nav('订单册')+`<div class="scroll"><div class="summary-strip"><b>${s.orders.length} 笔已完成</b><span>累计 ${total(s)} 星币</span></div>${s.orders.length?`<div class="album-grid">${[...s.orders].reverse().map(o=>button('detail',orderPhoto(o)+`<b>${o.customer} · ${num(o.id)}</b><small>${C.themes[o.theme].name} · ${o.satisfaction}% · +${o.earnings} 星币</small>`,'album-card',o.id)).join('')}</div>`:noData('订单册还是空的','封好第一盒，这里就会留下它的照片。','home','回到柜台')}</div>`,'library shop-book order-album');
+    if(l.page==='album')return section(nav('订单册')+`<div class="scroll"><div class="summary-strip"><b>${s.orders.length} 笔已完成</b><span>累计 ${total(s)} 星币</span></div>${s.orders.length?`<div class="album-grid">${[...s.orders].reverse().map(o=>button('detail',orderPhoto(o)+`<b>${o.customer} · ${num(o.id)}</b><small><span>${C.themes[o.theme].name} · ${o.satisfaction}%</span> <span>+${o.earnings} 星币</span></small>`,'album-card',o.id)).join('')}</div>`:noData('订单册还是空的','封好第一盒，这里就会留下它的照片。','home','回到柜台')}</div>`,'library shop-book order-album');
     if(l.page==='catalog'){
       const got=C.collection(s),cl=l.catalog, perColor=C.kinds.reduce((sum,k)=>sum+k.styles.length,0), maximum=perColor*colors.length, n=C.kinds.reduce((sum,k,i)=>sum+k.styles.filter((_,v)=>got.has(C.itemKey(cl,i,v))).length,0);
       return section(nav('小物图鉴')+`<div class="scroll"><div class="summary-strip"><b>${got.size===maximum?'全部收齐！':'已收藏 '+got.size+' / '+maximum}</b><span>${C.themes[cl].name} ${n}/${perColor}</span></div><div class="palette compact">${colors.map(k=>button('catalog-color',icon(k,17)+C.themes[k].name,'color-choice '+(k===cl?'selected':''),k)).join('')}</div><div class="catalog-grid">${C.kinds.map((k,i)=>k.styles.map((_,v)=>{const owns=got.has(C.itemKey(cl,i,v));return button('catalog-item',sprite(cl,i,v)+`<b>${owns?C.itemName(cl,i,v):k.name+'剪影'}</b>`,'catalog-item '+(owns?'':'unknown'),[cl,i,v].join('|'));}).join('')).join('')}</div></div>`,'library shop-book specimen-book');
@@ -185,15 +185,23 @@
     return LuckyFront.home(s);
   }
   const lessons=s=>['first-order','hold',...C.deliveries.map(d=>'goods-'+d.kind)].filter(key=>!s.learned[key]);
+  // A pause card in the game's own idiom: one big resume, two errands, two quiet options.
+  function pauseCard(s){
+    const a=s.active, done=a.mode==='scoop'?C.pieceCount(a.bags):C.count(a), total=a.mode==='scoop'?a.beads.length:5;
+    const where=a.level?C.levelName(a.level):'随心单 #'+num(a.id);
+    return `<div class="pause-status">${icon(a.theme,22)}<span>${where}</span><b>${done} / ${total}</b></div>`+
+      button('close','▶ 继续打包','btn primary pause-resume')+
+      `<div class="pause-row">${button('help','怎么玩','btn secondary')}${button('home','回到店里','btn secondary')}</div>`+
+      `<div class="pause-foot">${lessons(s).length?button('tutorial-off','关闭引导','text-btn'):''}${button('discard-prompt','放弃本单','text-btn')}</div>`;
+  }
   function dialog(s,l){
     const name=l.modals.at(-1);if(!name)return '';
     let title='',body='';
     if(name==='ticket'){title=s.active.customer+'的配货单';body=LuckyCounter.receipt(s.active,true);}
     if(name==='bead-rules'){title='珠子对照表';body=`<div class="bead-rules">${C.stockKinds(s).map(kind=>`<div class="bead-rule">${LuckyCounter.bead({kind,color:s.active.theme})}<span>→</span><img class="counter-item pixel" src="assets/items/${s.active.theme}-${kind}-0.png" alt=""><b>${C.kinds[kind].name}</b></div>`).join('')}</div>`;}
-    if(name==='pause'){title='暂停打包';body=`<p>订单 ${num(s.active.id)} · ${C.themes[s.active.theme].name} · ${s.active.gifts?'已开':'已装'} ${C.count(s.active)} / 5</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+button('discard-prompt','结束本单并重新接单','text-btn');}
+    if(name==='pause'){title='暂停';body=pauseCard(s);}
     if(name==='discard'){title='结束这笔订单？';body='<p>这盒还未封箱，本单的小物与收益会一起放弃。</p>'+primary('close','保留本单')+secondary('discard','结束并重新点单');}
     if(name==='help'){title='怎样配好一盒';body=`<ol class="guide"><li><b>先看顾客点的颜色</b><p>撕袋露卡，看清图卡上的品类、数量和目标颜色。</p></li><li><b>货架上六色都有</b><p>点货架上的区域放大，再从架上挑小物。拿错可以撤回，也可以点盒中小物重新配货。</p></li><li><b>五袋揭晓后，挑赠品、贴封签</b><p>每张卡最多 20 分，缺件按比例计入满意度。赠品可送零至两件，单独记入回信。封好关卡订单就能继续下一关。</p></li></ol>`+primary('close','知道了');}
-    if(s.active?.mode==='scoop'&&name==='pause'){title='暂停打包';body=`<p>${s.active.scoopTarget} 勺 · 已倒出 ${s.active.beads.length} 颗 · 已装 ${C.pieceCount(s.active.bags)} 件</p>`+primary('close','继续打包')+secondary('help','怎么玩')+secondary('home','保存回店')+(lessons(s).length?button('tutorial-off','不再显示操作引导','text-btn'):'')+button('discard-prompt','结束本单并重新接单','text-btn');}
     if(s.active?.mode==='scoop'&&name==='help'){title='怎样配好一盒';body='<ol class="guide"><li><b>按订单舀珠子</b><p>舀起一勺，倒进盘子，每颗珠子对应一件货。舀完订单上的勺数，再开始配货。</p></li><li><b>看珠子找实物</b><p>点盘里的珠子看对应货品，按客人的偏好配色。可以打开小票上的珠子对照表。点货架区域放大，在原货格取货。</p></li><li><b>装盒寄出</b><p>重复珠子就配多件。配齐后桌上的封签会亮起，把它贴上盒子就封箱寄出。想送赠品，先点盒边的赠品碟，从架上挑零至两件。</p></li></ol>'+primary('close','知道了');}
     if(name==='unlock'){title='解锁完整版';body='<p class="unlock-pitch">第一章十关免费开放。解锁后继续第二到第十章的 90 关，新货随关卡陆续到店。一次购买，永久有效，换设备可用同一 Apple 账户恢复。</p>'+
       primary('purchase',l.storeBusy?'正在连接 App Store…':l.price?'解锁 · '+l.price:'解锁完整版','',!!l.storeBusy)+secondary('restore','恢复购买')+secondary('close','先不用');}
@@ -207,7 +215,8 @@
       title=id?packName(g):C.kinds[g.kind].name+'剪影';
       body=`<div class="detail-art ${id?'':'unknown'}">${sprite(g.color,g.kind,g.variant)}</div><p>${caption}</p>`+primary('close','合上');
     }
-    return `<div class="veil"><section class="dialog" role="dialog" aria-modal="true" aria-label="${title}"><header><h2>${name==='ticket'?icon('pink',23):''}${title}</h2>${mini('close','close','关闭')}</header>${body}</section></div>`;
+    // The header stays put; only the body scrolls, and only when it truly cannot fit.
+    return `<div class="veil"><section class="dialog dialog-${name}" role="dialog" aria-modal="true" aria-label="${title}"><header><h2>${name==='ticket'?icon('pink',23):''}${title}</h2>${name==='pause'?'':mini('close','close','关闭')}</header><div class="dialog-body">${body}</div></section></div>`;
   }
   window.LuckyView={page,dialog,colors,icon,button};
 })();

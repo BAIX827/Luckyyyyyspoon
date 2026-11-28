@@ -33,20 +33,20 @@ test('scoop results are drawn on demand and survive restart before pouring', () 
   assert.deepEqual(state.active.bags, []);
   assert.equal(C.step(state, 'station-pack'), state);
   state = change(state, 'scoop', null, () => { calls++; return .1; });
-  assert.equal(calls, 21);
-  assert.equal(state.active.pendingBeads.length, 20);
+  assert.equal(calls, 11);
+  assert.equal(state.active.pendingBeads.length, 10);
   assert.equal(state.active.beads.length, 0);
   assert.equal(C.step(state, 'scoop'), state);
   const restored = C.decode(JSON.stringify(state));
   state = change(restored, 'pour');
   assert.equal(state.active.pendingBeads.length, 0);
-  assert.equal(state.active.beads.length, 20);
+  assert.equal(state.active.beads.length, 10);
   assert.equal(state.active.bags.length, 1);
-  assert.equal(state.active.bags[0].quantity, 20);
+  assert.equal(state.active.bags[0].quantity, 10);
   assert.equal(C.step(state, 'pour'), state);
   assert.equal(C.step(state, 'scoop'), state);
   state = fillAndShip(state);
-  assert.equal(state.orders[0].items.length, 20);
+  assert.equal(state.orders[0].items.length, 10);
   assert.equal(state.orders[0].satisfaction, 100);
   assert.equal(state.learned['first-order'], true);
 });
@@ -89,7 +89,7 @@ test('100 scoop orders unlock stock and layouts through the supported campaign',
     assert.equal(state.orders.at(-1).satisfaction, 100);
     const receipt = state.orders.at(-1);
     assert.equal(receipt.items.length, receipt.scoopSizes.reduce((sum,n)=>sum+n,0));
-    assert.ok(receipt.scoopSizes.every(n=>n>=20&&n<=28));
+    assert.ok(receipt.scoopSizes.every(n=>level===1?n>=10&&n<=12:n>=20&&n<=28));
   }
   assert.equal(C.stockKinds(state).length, 24);
 });

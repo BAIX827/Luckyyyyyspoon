@@ -84,7 +84,7 @@ window.LuckyCounter = (() => {
       used.set(key,(used.get(key)||0)+1);
     }
     return {gift,used,capacity:C.kinds.map((_,kind)=>C.stockCapacity(a,kind,gift)),
-      picking:gift?a.gifts.length<2:a.stage==='shelf' && !!card?.opened && card.pieces.length<card.quantity};
+      picking:gift?a.gifts.length<2:a.stage==='shelf' && (a.mode==='scoop' ? a.bags.some(b=>b.opened && b.pieces.length<b.quantity) : !!card?.opened && card.pieces.length<card.quantity)};
   }
   function bayAvailable(a,i) {
     return a.stage!=='seal' && shelves[i].some(g=>C.isStocked(a,g.kind) && (a.stage!=='gifts'||C.giftKinds.includes(g.kind)));
@@ -331,6 +331,9 @@ window.LuckyCounter = (() => {
     return update;
   }
   const photo = o => parcel({mode:o.mode,bags:o.cards,gifts:o.gifts,stage:'photo'});
+  // The parcel exactly as it left the counter: closed, addressed and stamped.
+  const sealedPhoto = o => parcel({mode:o.mode,bags:o.cards,gifts:o.gifts,stage:'seal',customer:o.customer,id:o.id})
+    .replace(/<\/div>$/,`<i class="parcel-stamp" aria-hidden="true">${icon(o.theme,30)}</i></div>`);
   async function scoopMotion(scene,reduceMotion) {
     const pool=scene?.querySelector('.scoop-prop .physical-prop');
     if(!pool||reduceMotion||!pool.animate)return;
@@ -446,5 +449,5 @@ window.LuckyCounter = (() => {
       <header class="counter-tools">${button('back',icon('back',21),'pixel-tool','','aria-label="回到店里"')}</header>
       <section class="finish-book" aria-label="柜台样本册">${finishControls(s,l)}</section></section>`;
   }
-  return {render,connect,prepareOverview,fixtures,receipt,photo,showroom,finishControls,bead,scoopMotion,pourMotion,sealMotion};
+  return {render,connect,prepareOverview,fixtures,receipt,photo,sealedPhoto,showroom,finishControls,bead,scoopMotion,pourMotion,sealMotion};
 })();
